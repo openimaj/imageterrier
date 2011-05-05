@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# A simple shell script to run the ImageTerrier Basic Searcher tool
+#
+# @author Jonathon Hare
+
+bin=`dirname "$0"`
+
+java -Xmx8G -cp "$bin/target/ImageTerrierTools-1.0-SNAPSHOT-jar-with-dependencies.jar" org.imageterrier.basictools.BasicSearcher ${1+"$@"}
