@@ -82,12 +82,12 @@
 		<dependency>
 			<groupId>org.openimaj.tools</groupId>
 			<artifactId>ClusterQuantiserTool</artifactId>
-			<version>1.0-SNAPSHOT</version>
+			<version>1.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.openimaj.tools</groupId>
 			<artifactId>LocalFeaturesTool</artifactId>
-			<version>1.0-SNAPSHOT</version>
+			<version>1.0</version>
 		</dependency>
 		<dependency>
 			<groupId>uk.ac.soton.ecs.jsh2</groupId>
