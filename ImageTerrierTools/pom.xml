@@ -4,11 +4,11 @@
 	<parent>
 		<artifactId>imageterrier-master</artifactId>
 		<groupId>org.imageterrier</groupId>
-		<version>3.0</version>
+		<version>3.0.1-SNAPSHOT</version>
 	</parent>
 	<groupId>org.imageterrier</groupId>
 	<artifactId>ImageTerrierTools</artifactId>
-	<version>3.0</version>
+	<version>3.0.1-SNAPSHOT</version>
 	<name>ImageTerrierTools</name>
 	<url>http://www.imageterrier.org</url>
 	<inceptionYear>2011</inceptionYear>
@@ -77,7 +77,7 @@
 		<dependency>
 			<groupId>org.imageterrier</groupId>
 			<artifactId>ImageTerrier</artifactId>
-			<version>3.0</version>
+			<version>3.0.1-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.openimaj.tools</groupId>
