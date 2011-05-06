@@ -19,5 +19,25 @@
 				<version>1.9.0</version>
 			</plugin>
 		</plugins>
+		<plugin>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-release-plugin</artifactId>
+			<version>2.1</version>
+			<configuration>
+				<autoVersionSubmodules>true</autoVersionSubmodules>
+			</configuration>
+		</plugin>
 	</build>
+	<distributionManagement>
+		<repository>
+			<id>octopussy</id>
+			<name>Octopussy Maven Releases Repository</name>
+			<url>http://octopussy.ecs.soton.ac.uk/m2/releases</url>
+		</repository>
+	</distributionManagement>
+	<scm>
+		<connection>scm:svn:svn://svn.code.sf.net/p/imageterrier/code/trunk</connection>
+		<developerConnection>scm:svn:svn+ssh://svn.code.sf.net/p/imageterrier/code/trunk</developerConnection>
+		<url>https://sourceforge.net/p/imageterrier/code</url>
+	</scm>
 </project>
