@@ -28,13 +28,10 @@
  */
 package org.imageterrier.basictools;
 
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.imageio.ImageIO;
 
 import jline.ArgumentCompletor;
 import jline.ConsoleReader;
@@ -58,6 +55,8 @@ import org.kohsuke.args4j.CmdLineParser;
 import org.openimaj.feature.local.list.LocalFeatureList;
 import org.openimaj.feature.local.quantised.QuantisedLocalFeature;
 import org.openimaj.image.DisplayUtilities;
+import org.openimaj.image.ImageUtilities;
+import org.openimaj.image.MBFImage;
 import org.openimaj.ml.clustering.Cluster;
 import org.openimaj.tools.localfeature.LocalFeatureMode;
 import org.terrier.matching.ResultSet;
@@ -195,20 +194,20 @@ public class BasicSearcher {
 	public void displayImage(String title, File... images) {
 		if (images.length == 1) {
 			try {
-				DisplayUtilities.display(ImageIO.read(images[0]), title);
+				DisplayUtilities.display(ImageUtilities.readMBF(images[0]), title);
 			} catch (IOException e) {
 				System.err.println("Unable to load " + images[0]);
 			}
 		} else {
-			List<BufferedImage> bimages = new ArrayList<BufferedImage>();
+			List<MBFImage> bimages = new ArrayList<MBFImage>();
 			for (int i=0; i<images.length; i++) {
 				try {
-					bimages.add(ImageIO.read(images[i]));
+					bimages.add(ImageUtilities.readMBF(images[i]));
 				} catch (IOException e) {
 					System.err.println("Unable to load " + images[i]);
 				}
 			}
-			DisplayUtilities.display(title, bimages.toArray(new BufferedImage[bimages.size()]));
+			DisplayUtilities.display(title, bimages.toArray(new MBFImage[bimages.size()]));
 		}
 	}
 	
