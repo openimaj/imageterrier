@@ -49,7 +49,7 @@ import org.terrier.structures.postings.IterablePosting;
  * @author Sina Samangooei <ss@ecs.soton.ac.uk>
  *
  */
-public class FastFull extends BaseMatching{
+public class FastFull extends BaseMatching {
 
 	public FastFull(Index index) {
 		super(index);

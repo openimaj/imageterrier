@@ -28,18 +28,50 @@
  */
 package org.imageterrier.locfile;
 
+import java.util.Arrays;
+
 import org.openimaj.feature.local.Location;
+import org.openimaj.feature.local.ScaleSpaceLocation;
+import org.openimaj.feature.local.SpatialLocation;
 import org.openimaj.image.feature.local.affine.AffineSimulationKeypoint.AffineSimulationKeypointLocation;
+import org.openimaj.image.feature.local.keypoints.KeypointLocation;
+import org.openimaj.util.hash.HashCodeUtil;
 
 
+/**
+ * The PositionSpec class defines the type of position that will be stored in the
+ * payload of each term-document posting, together with the methods required for
+ * encoding and decoding this information.
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ *
+ */
 public class PositionSpec {
+	/**
+	 * An enum containing all the supported location payload formats
+	 * and methods to encode Location objects as integer arrays, and get 
+	 * them back again.
+	 * 
+	 * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+	 */
 	public static enum PositionSpecMode {
+		/**
+		 * No location information should be stored
+		 */
 		NONE(0) {
 			@Override
 			public int[] encodePosition(Location l, int[] positionBits, double [] lowerBounds, double [] upperBounds) {
 				return new int[0];
 			}
+
+			@Override
+			public Location decodePosition(int[] data, int[] positionBits, double[] lowerBounds, double[] upperBounds) {
+				return null;
+			}
 		},
+		/**
+		 * Store the x and y coordinates of each visual term
+		 */
 		SPATIAL(2) {
 			@Override
 			public int[] encodePosition(Location l, int[] positionBits, double [] lowerBounds, double [] upperBounds) {
@@ -50,7 +82,18 @@ public class PositionSpec {
 
 				return pos;
 			}
+
+			@Override
+			public Location decodePosition(int[] data, int[] positionBits, double[] lowerBounds, double[] upperBounds) {
+				return new SpatialLocation(
+						(float)decode(data[0], lowerBounds[0], upperBounds[0], positionBits[0]),
+						(float)decode(data[1], lowerBounds[1], upperBounds[1], positionBits[1])
+						);
+			}
 		},
+		/**
+		 * Store the scale of each visual term
+		 */
 		SCALE(1) {
 			@Override
 			public int[] encodePosition(Location l, int[] positionBits, double [] lowerBounds, double [] upperBounds) {
@@ -60,7 +103,19 @@ public class PositionSpec {
 
 				return pos;
 			}
+			
+			@Override
+			public Location decodePosition(int[] data, int[] positionBits, double[] lowerBounds, double[] upperBounds) {
+				return new ScaleSpaceLocation( 
+						0,
+						0,
+						(float)decode(data[0], lowerBounds[0], upperBounds[0], positionBits[0])
+						);
+			}
 		},
+		/**
+		 * Store the orientation of each visual term
+		 */
 		ORI(1) {
 			@Override
 			public int[] encodePosition(Location l, int[] positionBits, double [] lowerBounds, double [] upperBounds) {
@@ -70,7 +125,20 @@ public class PositionSpec {
 
 				return pos;
 			}
+			
+			@Override
+			public Location decodePosition(int[] data, int[] positionBits, double[] lowerBounds, double[] upperBounds) {
+				return new KeypointLocation(
+						0,
+						0,
+						0,
+						(float)decode(data[0], lowerBounds[0], upperBounds[0], positionBits[0])
+						);
+			}
 		},
+		/**
+		 * Store the x and y coordinates of each visual term together with its respective scale
+		 */
 		SPATIAL_SCALE(3) {
 			@Override
 			public int[] encodePosition(Location l, int[] positionBits, double [] lowerBounds, double [] upperBounds) {
@@ -82,7 +150,19 @@ public class PositionSpec {
 
 				return pos;
 			}
+			
+			@Override
+			public Location decodePosition(int[] data, int[] positionBits, double[] lowerBounds, double[] upperBounds) {
+				return new ScaleSpaceLocation( 
+						(float)decode(data[0], lowerBounds[0], upperBounds[0], positionBits[0]),
+						(float)decode(data[1], lowerBounds[1], upperBounds[1], positionBits[1]),
+						(float)decode(data[2], lowerBounds[2], upperBounds[2], positionBits[2])
+						);
+			}
 		},
+		/**
+		 * Store the x and y coordinates of each visual term together with its respective scale and orientation
+		 */
 		SPATIAL_SCALE_ORI(4) {
 			@Override
 			public int[] encodePosition(Location l, int[] positionBits, double [] lowerBounds, double [] upperBounds) {
@@ -95,7 +175,20 @@ public class PositionSpec {
 
 				return pos;
 			}
+			
+			@Override
+			public Location decodePosition(int[] data, int[] positionBits, double[] lowerBounds, double[] upperBounds) {
+				return new KeypointLocation(
+						(float)decode(data[0], lowerBounds[0], upperBounds[0], positionBits[0]),
+						(float)decode(data[1], lowerBounds[1], upperBounds[1], positionBits[1]),
+						(float)decode(data[2], lowerBounds[2], upperBounds[2], positionBits[2]),
+						(float)decode(data[3], lowerBounds[3], upperBounds[3], positionBits[3])
+						);
+			}
 		},
+		/**
+		 * Store the theta and tilt parameters from the affine simulation that created the visual term
+		 */
 		AFFINE(2) {
 			@Override
 			public int[] encodePosition(Location l, int[] positionBits, double [] lowerBounds, double [] upperBounds) {
@@ -108,7 +201,24 @@ public class PositionSpec {
 				
 				return pos;
 			}
+			
+			@Override
+			public Location decodePosition(int[] data, int[] positionBits, double[] lowerBounds, double[] upperBounds) {
+				return new AffineSimulationKeypointLocation(
+						0,
+						0,
+						0,
+						0,
+						(float)decode(data[0], lowerBounds[0], upperBounds[0], positionBits[0]),
+						(float)decode(data[1], lowerBounds[1], upperBounds[1], positionBits[1]),
+						0
+						);
+			}
 		},
+		/**
+		 * Store the x and y coordinates together with the theta and tilt parameters 
+		 * from the affine simulation that created the visual term
+		 */
 		SPATIAL_AFFINE(4) {
 			@Override
 			public int[] encodePosition(Location l, int[] positionBits, double [] lowerBounds, double [] upperBounds) {
@@ -123,27 +233,89 @@ public class PositionSpec {
 				}
 
 				return pos;
+			}
+			
+			@Override
+			public Location decodePosition(int[] data, int[] positionBits, double[] lowerBounds, double[] upperBounds) {
+				return new AffineSimulationKeypointLocation(
+						(float)decode(data[0], lowerBounds[0], upperBounds[0], positionBits[0]), //x
+						(float)decode(data[1], lowerBounds[1], upperBounds[1], positionBits[1]), //y
+						0, //sca
+						0, //ori
+						(float)decode(data[2], lowerBounds[2], upperBounds[2], positionBits[2]), //theta
+						(float)decode(data[3], lowerBounds[3], upperBounds[3], positionBits[3]), //tilt
+						0 //index
+						);
+			}
+		}, 
+		/**
+		 * Store the index from the affine simulation that created the visual term.
+		 * Note that the value isn't encoded (as it's already an unsigned integer);
+		 * the number of bits must however be big enough to store the value in the
+		 * index however.
+		 */
+		AFFINE_INDEX(1) {
+			@Override
+			public int[] encodePosition(Location l, int[] positionBits, double [] lowerBounds, double [] upperBounds) {
+				int [] pos = new int[npos];
+				
+				if (l instanceof AffineSimulationKeypointLocation) {
+					pos[0] = l.getOrdinate(6).intValue();
+				}
 
+				return pos;
+			}
+			
+			@Override
+			public Location decodePosition(int[] data, int[] positionBits, double[] lowerBounds, double[] upperBounds) {
+				return new AffineSimulationKeypointLocation(
+						0, //x
+						0, //y
+						0, //sca
+						0, //ori
+						0, //theta
+						0, //tilt
+						data[0]//index
+						);
 			}
 		}
 		;
 
-		public int npos;
+		/** The number of ordinates stored by the PositionSpecMode */
+		public final int npos;
 
 		PositionSpecMode(int npos) {
 			this.npos = npos;
 		}
 
+		/**
+		 * Encode the Location object as an array of unsigned n-bit integers
+		 * @param l the location to encode
+		 * @param positionBits the number of bits for each ordinate
+		 * @param lowerBounds the minimum value per ordinate
+		 * @param upperBounds the maximum value per ordinate
+		 * @return an array of integers encoding the ordinates of the Location
+		 */
 		public abstract int [] encodePosition(Location l, int [] positionBits, double [] lowerBounds, double [] upperBounds);
+		
+		/**
+		 * Decode the ordinates stored in the data array into a Location object.
+		 * @param data the data to decode
+		 * @param positionBits the number of bits for each ordinate
+		 * @param lowerBounds the minimum value per ordinate
+		 * @param upperBounds the maximum value per ordinate
+		 * @return a location object with the ordinates from the data
+		 */
+		public abstract Location decodePosition(int[] data, int [] positionBits, double [] lowerBounds, double [] upperBounds);
 
 		/**
 		 * Encode value as an nbits UNSIGNED integer
 		 * 
-		 * @param value
-		 * @param lower
-		 * @param upper
-		 * @param nbits
-		 * @return
+		 * @param value value to encode
+		 * @param lower minimum allowed value
+		 * @param upper maximum allowed value
+		 * @param nbits number of bits to use
+		 * @return an integer encoding the given value
 		 */
 		protected int encode(double value, double lower, double upper, int nbits) {
 			if (value < lower) return 0;
@@ -152,6 +324,21 @@ public class PositionSpec {
 			if (value >= upper) return maxval;
 
 			return (int) ((value - lower)*((maxval - 0) / (upper - lower)));
+		}
+		
+		/**
+		 * Decode value from an nbits UNSIGNED integer
+		 * 
+		 * @param value value to decode
+		 * @param lower minimum allowed value
+		 * @param upper maximum allowed value
+		 * @param nbits number of bits to use
+		 * @return decoded value
+		 */
+		protected double decode(int value, double lower, double upper, int nbits) {
+			int maxval = (int) (Math.pow(2,nbits) - 1);
+			
+			return value*((upper - lower) / (maxval - 0)) + lower;
 		}
 	}
 
@@ -197,6 +384,10 @@ public class PositionSpec {
 	public double[] getUpperBounds() {
 		return upperBounds;
 	}
+	
+	public Location decode(int [] encodedData) {
+		return mode.decodePosition(encodedData, positionBits, lowerBounds, upperBounds);
+	}
 
 	private String numsToString(int [] nos) {
 		if (nos.length == 0) return "";
@@ -211,11 +402,19 @@ public class PositionSpec {
 		return s;
 	}
 	
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
 	@Override
 	public String toString() {
 		return mode.name()+"(" + numsToString(positionBits) + ";" + numsToString(lowerBounds) + ";" + numsToString(upperBounds)+")";
 	}
 	
+	/**
+	 * Decode a PositionSpec from a String produced by {@link #toString()}.
+	 * @param string String containing the data required to create a PositionSpec.
+	 * @return a new PositionSpec.
+	 */
 	public static PositionSpec decode(String string) {
 		PositionSpecMode mode = PositionSpecMode.valueOf(string.substring(0, string.indexOf("(")));
 		
@@ -232,12 +431,35 @@ public class PositionSpec {
 		
 		return new PositionSpec(mode, positionBits, lowerBounds, upperBounds);
 	}
-	
-	public static void main(String [] args) {
-		PositionSpec spec = new PositionSpec(PositionSpecMode.SPATIAL, new int[] {2,3}, new double[] {0,1}, new double[]{10,11});
 
-		System.out.println(spec);
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		int result = HashCodeUtil.SEED;
 		
-		System.out.println(PositionSpec.decode(spec.toString()));
+		result = HashCodeUtil.hash(result, mode);
+		result = HashCodeUtil.hash(result, positionBits);
+		result = HashCodeUtil.hash(result, lowerBounds);
+		result = HashCodeUtil.hash(result, upperBounds);
+		
+		return result;
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		if ( this == obj ) return true;
+	    if ( !(obj instanceof PositionSpec) ) return false; 
+		
+	    PositionSpec spec = (PositionSpec) obj;
+	    
+		return mode.equals(spec.mode) &&
+			Arrays.equals(positionBits, spec.positionBits) &&
+			Arrays.equals(lowerBounds, spec.lowerBounds) &&
+			Arrays.equals(upperBounds, spec.upperBounds);
 	}
 }
