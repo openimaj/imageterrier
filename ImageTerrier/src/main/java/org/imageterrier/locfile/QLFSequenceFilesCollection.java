@@ -173,8 +173,9 @@ public class QLFSequenceFilesCollection <F extends QuantisedLocalFeature<?>> imp
 		try {
 			for (URI u : fl) {
 				TextBytesSequenceFileUtility sf = new TextBytesSequenceFileUtility(u, true);
+				
 				for (Text t : sf.listKeys()) {
-					if (t.getLength() > max) max = t.getLength();
+					if (t.getLength() > max) max = t.getLength() + (sf.getSequenceFilePath().getName() + "?key=").length();
 				}
 			}
 		} catch (IOException e) {
