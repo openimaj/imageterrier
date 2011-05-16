@@ -57,6 +57,7 @@ import org.openimaj.feature.local.quantised.QuantisedLocalFeature;
 import org.openimaj.image.DisplayUtilities;
 import org.openimaj.image.ImageUtilities;
 import org.openimaj.image.MBFImage;
+import org.openimaj.math.geometry.shape.Rectangle;
 import org.openimaj.ml.clustering.Cluster;
 import org.openimaj.tools.localfeature.LocalFeatureMode;
 import org.terrier.matching.ResultSet;
@@ -147,7 +148,8 @@ public class BasicSearcher {
 		QLFDocument<QuantisedLocalFeature<?>> d = new QLFDocument<QuantisedLocalFeature<?>>(qfeatures, "query", null);
 		
 		if (coords != null) {
-			d.filter(coords[0], coords[1], coords[0] + coords[2], coords[1] + coords[3]);
+			Rectangle r = new Rectangle(coords[0], coords[1], coords[2], coords[3]);
+			d.filter(r);
 		}
 		
 		long t2 = System.currentTimeMillis();

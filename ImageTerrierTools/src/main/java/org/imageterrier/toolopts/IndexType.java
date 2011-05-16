@@ -30,11 +30,11 @@ package org.imageterrier.toolopts;
 
 import java.io.IOException;
 
-import org.imageterrier.indexing.ASSinglePassIndexer;
 import org.imageterrier.indexing.BasicSinglePassIndexer;
 import org.imageterrier.indexing.NNSinglePassIndexer;
 import org.imageterrier.indexing.PositionSinglePassIndexer;
 import org.imageterrier.locfile.PositionSpec;
+import org.imageterrier.locfile.PositionSpec.PositionSpecMode;
 import org.kohsuke.args4j.CmdLineOptionsProvider;
 import org.kohsuke.args4j.Option;
 import org.terrier.indexing.ExtensibleSinglePassIndexer;
@@ -59,7 +59,7 @@ public enum IndexType implements CmdLineOptionsProvider {
 	},
 	POSITION {
 		@Option(name="--nbits", aliases="-nb", required=false, usage="Comma separated number of bits per position entry")
-		private String nbytesStr = "";
+		private String nBitsStr = "";
 
 		@Option(name="--min-values", aliases="-mins", required=false, usage="Comma separated minimum value for each position entry")
 		private String minStr = "";
@@ -73,8 +73,8 @@ public enum IndexType implements CmdLineOptionsProvider {
 		@Override
 		public ExtensibleSinglePassIndexer getIndexer(String indexPath, String indexName) throws IOException {
 
-			int[] bytes = ArrayUtils.parseCommaDelimitedInts(nbytesStr);
-			if(posMode.npos != bytes.length) throw new IOException("Incorrect number of bytes, expecting: " + posMode.npos);
+			int[] bits = ArrayUtils.parseCommaDelimitedInts(nBitsStr);
+			if(posMode.npos != bits.length) throw new IOException("Incorrect number of bits, expecting: " + posMode.npos);
 
 			double[] mins = ArrayUtils.parseCommaDelimitedDoubles(minStr);
 			if(posMode.npos != mins.length) throw new IOException("Incorrect number of mins, expecting: " + posMode.npos);
@@ -82,14 +82,15 @@ public enum IndexType implements CmdLineOptionsProvider {
 			double[] maxs = ArrayUtils.parseCommaDelimitedDoubles(maxStr);
 			if(posMode.npos != maxs.length) throw new IOException("Incorrect number of maxs, expecting: " + posMode.npos);
 
-			PositionSpec spec = new PositionSpec(posMode, bytes,mins,maxs);
+			PositionSpec spec = new PositionSpec(posMode, bits,mins,maxs);
 			return new PositionSinglePassIndexer(indexPath, indexName, spec);	
 		}
 	},
 	AFFINESIM {
 		@Override
 		public ExtensibleSinglePassIndexer getIndexer(String indexPath, String indexName) {
-			return new ASSinglePassIndexer(indexPath, indexName);	
+			PositionSpec spec = new PositionSpec(PositionSpecMode.AFFINE_INDEX, new int[]{5}, new double[]{0}, new double[]{32});
+			return new PositionSinglePassIndexer(indexPath, indexName, spec);	
 		}
 	};
 

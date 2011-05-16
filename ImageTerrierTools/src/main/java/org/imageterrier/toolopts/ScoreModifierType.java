@@ -65,7 +65,7 @@ public enum ScoreModifierType implements CmdLineOptionsProvider {
 		public String getScoreModifierClass() {
 			ApplicationSetup.setProperty(HomographyScoreModifier.N_DOCS_TO_RERANK, numDocsRerank+"");
 			ApplicationSetup.setProperty(HomographyScoreModifier.FILTERING_THRESHOLD, filterThresh+"");
-			ApplicationSetup.setProperty(HomographyScoreModifier.RANSAC_NUM_MATCHES_SUCCESS, numSuccessfulMatches+"");
+			ApplicationSetup.setProperty(HomographyScoreModifier.RANSAC_PER_MATCHES_SUCCESS, numSuccessfulMatches+"");
 			ApplicationSetup.setProperty(HomographyScoreModifier.RANSAC_MAX_ITER, nIter+"");
 			
 			ApplicationSetup.setProperty(HomographyScoreModifier.MODEL_TOLERANCE, tolerance+"");
@@ -93,7 +93,7 @@ public enum ScoreModifierType implements CmdLineOptionsProvider {
 		public String getScoreModifierClass() {
 			ApplicationSetup.setProperty(AffineScoreModifier.N_DOCS_TO_RERANK, numDocsRerank+"");
 			ApplicationSetup.setProperty(AffineScoreModifier.FILTERING_THRESHOLD, filterThresh+"");
-			ApplicationSetup.setProperty(AffineScoreModifier.RANSAC_NUM_MATCHES_SUCCESS, numSuccessfulMatches+"");
+			ApplicationSetup.setProperty(AffineScoreModifier.RANSAC_PER_MATCHES_SUCCESS, numSuccessfulMatches+"");
 			ApplicationSetup.setProperty(AffineScoreModifier.RANSAC_MAX_ITER, nIter+"");
 			
 			ApplicationSetup.setProperty(AffineScoreModifier.MODEL_TOLERANCE, tolerance+"");
