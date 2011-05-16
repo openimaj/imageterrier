@@ -40,24 +40,38 @@ import org.terrier.structures.postings.IterablePosting;
 import org.terrier.structures.postings.TermPayloadIterablePosting;
 
 
+/**
+ * Reads an InvertedIndex containing payload information as a stream
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ *
+ * @param <PAYLOAD> the type of payload
+ */
 public class TermPayloadInvertedIndexInputStream<PAYLOAD> extends InvertedIndexInputStream implements IndexConfigurable {
 	protected int DocumentBlockCountDelta = 1;
 	protected TermPayloadCoordinator<PAYLOAD> payloadConf;
 
+	/**
+	 * Construct the stream
+	 * @param index the parent index
+	 * @param structureName the name of the inverted index
+	 * @param postingIteratorClass the type of posting iterator
+	 * @throws IOException
+	 */
 	public TermPayloadInvertedIndexInputStream(Index index, String structureName, Class<? extends IterablePosting> postingIteratorClass) throws IOException {
 		super(index, structureName, postingIteratorClass);
 	}
 
+	/**
+	 * Construct the stream
+	 * @param index the parent index
+	 * @param structureName the name of the inverted index
+	 * @param lexInputStream input stream for the lexicon
+	 * @param postingIteratorClass the type of posting iterator
+	 * @throws IOException
+	 */
 	public TermPayloadInvertedIndexInputStream(Index index, String structureName, Iterator<? extends Pointer> lexInputStream, Class<? extends IterablePosting> postingIteratorClass) throws IOException {
 		super(index, structureName, lexInputStream, postingIteratorClass);
-	}
-
-	public TermPayloadInvertedIndexInputStream(Index index, String structureName, Iterator<? extends Pointer> lexInputStream) throws IOException {
-		super(index, structureName, lexInputStream);
-	}
-
-	public TermPayloadInvertedIndexInputStream(Index index, String structureName) throws IOException {
-		super(index, structureName);
 	}
 
 	/** let it know which index to use */

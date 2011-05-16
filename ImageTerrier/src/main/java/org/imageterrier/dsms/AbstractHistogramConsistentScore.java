@@ -108,8 +108,7 @@ public abstract class AbstractHistogramConsistentScore implements DocumentScoreM
 					queryTermPos[i] = spec.getPosition(queryDoc)[indices[i]];
 				}
 				
-				
-				int[][][] matchDocs = invidx.getPositions((BitIndexPointer) le, docposmap,indices);
+				int[][][] matchDocs = invidx.getPositions((BitIndexPointer) le, docposmap, indices);
 
 				for (int i=0; i<scores.length; i++) {
 					int [][] matchedTermPos = matchDocs[i];

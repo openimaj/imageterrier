@@ -36,6 +36,13 @@ import org.terrier.structures.TermPayloadCoordinator;
 import org.terrier.structures.postings.BasicPostingImpl;
 import org.terrier.structures.postings.WritablePosting;
 
+/**
+ * A posting holding payloads
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ *
+ * @param <PAYLOAD> the payload type
+ */
 public class TermPayloadPostingImpl<PAYLOAD> extends BasicPostingImpl implements TermPayloadPosting<PAYLOAD> {
 	/**
 	 * This stores info about the payload
@@ -44,6 +51,12 @@ public class TermPayloadPostingImpl<PAYLOAD> extends BasicPostingImpl implements
 	
 	PAYLOAD[] payloads;
 
+	/**
+	 * @param docid
+	 * @param frequency
+	 * @param _positions
+	 * @param payloadConf
+	 */
 	public TermPayloadPostingImpl(int docid, int frequency, PAYLOAD[] _positions, TermPayloadCoordinator<PAYLOAD> payloadConf) {
 		super(docid, frequency);
 		payloads = _positions;

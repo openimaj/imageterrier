@@ -34,8 +34,22 @@ import org.openimaj.math.geometry.transforms.AffineTransformModel;
 import org.openimaj.math.model.Model;
 import org.terrier.matching.dsms.DocumentScoreModifier;
 
-
+/**
+ * A score modifier that can be applied to a position index
+ * with x and y coordinates, and works by fitting a 
+ * {@link AffineTransformModel} to the matching visual term pairs.  
+ * 
+ * If a transform that fits the point pairs is found the 
+ * document score is set to the number of inliers, otherwise
+ * the score is zero.
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ */
 public class AffineScoreModifier extends AbstractRANSACGeomModifier implements DocumentScoreModifier {
+	/** 
+	 * The distance in pixels that points are allowed to move from their
+	 * predicted position and still be considered a match.
+	 */
 	public static final String MODEL_TOLERANCE = "AffineScoreModifier.model_tolerance";
 
 	@Override

@@ -32,13 +32,26 @@ import java.io.IOException;
 import java.util.List;
 
 import org.openimaj.feature.local.quantised.QuantisedLocalFeature;
+import org.terrier.indexing.Collection;
 
-
-@SuppressWarnings("rawtypes")
-public class QLFInMemoryCollection<F extends QuantisedLocalFeature<?>> implements QLFCollection {
+/**
+ * A concrete implementation of a {@link Collection} of 
+ * {@link QLFDocument}s held in memory.
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ *
+ * @param <F> type of feature
+ */
+public class QLFInMemoryCollection<F extends QuantisedLocalFeature<?>> implements QLFCollection<F> {
+	/** The underlying list of documents. */
 	public List<QLFDocument<F>> docs;
 	int idx = -1;
 	
+	/**
+	 * Construct a QLFInMemoryCollection from the specified
+	 * list of documents.
+	 * @param docs the documents.
+	 */
 	public QLFInMemoryCollection(List<QLFDocument<F>> docs) {
 		this.docs = docs;
 	}

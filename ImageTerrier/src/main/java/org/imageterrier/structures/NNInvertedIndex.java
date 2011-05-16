@@ -34,19 +34,25 @@ import org.terrier.structures.DocumentIndex;
 import org.terrier.structures.Index;
 import org.terrier.structures.IndexConfigurable;
 import org.terrier.structures.TermPayloadInvertedIndex;
-import org.terrier.structures.postings.BlockIterablePosting;
 import org.terrier.structures.postings.IterablePosting;
 
+/**
+ * An inverted index that also stores the spatial nearest-neighbour
+ * term-ids of each term occurrence in the style of Sivic and
+ * Zisserman's "VideoGoogle" paper.
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ */
 public class NNInvertedIndex extends TermPayloadInvertedIndex<int[]> implements IndexConfigurable {
+	/**
+	 * Construct the inverted index.
+	 * @param index the index to which this inverted index belongs
+	 * @param structureName the name of the inverted index structure
+	 * @param _doi the document index
+	 * @param postingClass the class to use for iterating postings
+	 * @throws IOException
+	 */
 	public NNInvertedIndex(Index index, String structureName, DocumentIndex _doi, Class<? extends IterablePosting> postingClass) throws IOException {
 		super(index, structureName, _doi, postingClass);
-	}
-	
-	public NNInvertedIndex(Index index, String structureName, DocumentIndex doi) throws IOException {
-		super(index, structureName, doi, BlockIterablePosting.class);
-	}
-
-	public NNInvertedIndex(Index index, String structureName) throws IOException {
-		this(index, structureName, index.getDocumentIndex());
 	}
 }

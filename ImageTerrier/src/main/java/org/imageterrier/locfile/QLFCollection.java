@@ -33,9 +33,11 @@ import org.terrier.indexing.Collection;
 
 
 /**
+ * A {@link Collection} of documents built from {@link QuantisedLocalFeature}s.
+ * 
  * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
  *
- * @param <F>
+ * @param <F> type of feature
  */
 public interface QLFCollection<F extends QuantisedLocalFeature<?>> extends Collection {
 	/**
@@ -43,7 +45,7 @@ public interface QLFCollection<F extends QuantisedLocalFeature<?>> extends Colle
 	 * the IDs of all the documents in this collection.
 	 * Assumes that the ID numbering is sequential from 1.
 	 * 
-	 * @return
+	 * @return the maximum number of id characters
 	 */
 	public int getMaxNumIDChars();
 	
@@ -51,7 +53,7 @@ public interface QLFCollection<F extends QuantisedLocalFeature<?>> extends Colle
 	 * Get the maximum number of characters required to store
 	 * the path of each file in the collection
 	 * 
-	 * @return
+	 * @return  the maximum number of path characters
 	 */
 	public int getMaxPathChars();
 }

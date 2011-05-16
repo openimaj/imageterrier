@@ -30,6 +30,12 @@ package org.imageterrier.models;
 
 import org.terrier.matching.models.WeightingModel;
 
+/**
+ * A {@link WeightingModel} that calculates the L1 distance 
+ * between unweighted query and target vectors. 
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ */
 public class L1WeightingModel extends WeightingModel {
 	private static final long serialVersionUID = 1L;
 	
@@ -45,7 +51,7 @@ public class L1WeightingModel extends WeightingModel {
 	public double score(double tf, double docLength) {
 		double dtf = tf/docLength;
 		double qtf = keyFrequency * c; //Note: c must be set to correctly weight the query terms...
-		/**
+		/*
 		 * This comes from doing this:
 		 * L1( q , d )  = sum([abs(q[i] - d[i]) for i in terms])
 		 * 
@@ -73,9 +79,6 @@ public class L1WeightingModel extends WeightingModel {
 
 	@Override
 	public double score(double tf, double docLength, double nT, double F_t, double keyFrequency) {
-//		double dtf = tf/docLength;
-//		double score = Math.abs(keyFrequency - dtf) - keyFrequency - dtf;
-//		return score;
 		throw new UnsupportedOperationException();
 	}
 }

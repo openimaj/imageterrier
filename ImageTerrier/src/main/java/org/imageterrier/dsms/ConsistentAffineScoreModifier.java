@@ -36,6 +36,7 @@ import org.terrier.utility.ApplicationSetup;
 public class ConsistentAffineScoreModifier  extends AbstractHistogramConsistentScore {
 	int ntibins = Integer.parseInt(ApplicationSetup.getProperty(CONSISTENT_HISTOGRAM_BINS+".tilt", "10"));
 	int nthbins = Integer.parseInt(ApplicationSetup.getProperty(CONSISTENT_HISTOGRAM_BINS+".theta", "10"));
+	
 	@Override
 	public String getName() {
 		return "ConsistentAffineScoreModifier";
@@ -73,5 +74,4 @@ public class ConsistentAffineScoreModifier  extends AbstractHistogramConsistentS
 			hist[bin]++;
 		}
 	}
-
 }

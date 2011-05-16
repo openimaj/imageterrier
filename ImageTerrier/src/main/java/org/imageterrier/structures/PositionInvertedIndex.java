@@ -43,27 +43,36 @@ import org.terrier.structures.DocumentIndex;
 import org.terrier.structures.Index;
 import org.terrier.structures.IndexConfigurable;
 import org.terrier.structures.TermPayloadInvertedIndex;
-import org.terrier.structures.postings.BlockIterablePosting;
 import org.terrier.structures.postings.IterablePosting;
 
 
+/**
+ * An ImageTerrier inverted index with payloads capable of storing
+ * information on the position (i.e. spatial position, scale, orientation, etc.)
+ * of each visual-term occurrence.
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ */
 public class PositionInvertedIndex extends TermPayloadInvertedIndex<int[]> implements IndexConfigurable {
 	protected int DocumentBlockCountDelta = 1;
 	
+	/**
+	 * Construct the inverted index.
+	 * @param index the index to which this inverted index belongs
+	 * @param structureName the name of the inverted index structure
+	 * @param _doi the document index
+	 * @param postingClass the class to use for iterating postings
+	 * @throws IOException
+	 */
 	public PositionInvertedIndex(Index index, String structureName, DocumentIndex _doi, Class<? extends IterablePosting> postingClass) throws IOException
 	{
 		super(index, structureName, _doi, postingClass);
 	}
 
-	public PositionInvertedIndex(Index index, String structureName, DocumentIndex doi) throws IOException {
-		super(index, structureName, doi, BlockIterablePosting.class);
-	}
-
-
-	public PositionInvertedIndex(Index index, String structureName) throws IOException {
-		this(index, structureName, index.getDocumentIndex());
-	}
-
+	/**
+	 * Get the {@link PositionSpec} used for this index.
+	 * @return the PositionSpec.
+	 */
 	public PositionSpec getPositionSpec() {
 		return ((PositionTermPayloadCoordinator)payloadConf).getPositionSpec();
 	}
@@ -79,10 +88,17 @@ public class PositionInvertedIndex extends TermPayloadInvertedIndex<int[]> imple
 	}
 	
 	/**
-	 * For a given postings list return a map of
-	 * docid -> positions_of_each_term_instance
+	 * Get a subset of the position information for a given postings list.
+	 * The input is a map of the required documents to their index in the output array,
+	 * and a list of required position indices (i.e. you can just get the x, and y parts
+	 * and ignore everything else).
+	 * The output is a three dimensional integer array of documents -> list of payload info
+	 * where the payload info is itself an array of (encoded) ints.
+	 * 
 	 * @param pointer postings list pointer
-	 * @return
+	 * @param docposmap a mapping of document-id -> array index in the output array for all relevant documents.
+	 * @param requestedindices the position indices required
+	 * @return subset of the position information of the posting
 	 */
 	public int[][][] getPositions(BitIndexPointer pointer, TIntIntHashMap docposmap, int... requestedindices) {
 		int [][][] docsMatches = new int [docposmap.size()][][];

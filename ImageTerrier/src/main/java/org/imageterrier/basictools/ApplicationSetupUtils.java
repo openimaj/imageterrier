@@ -30,7 +30,27 @@ package org.imageterrier.basictools;
 
 import org.terrier.utility.ApplicationSetup;
 
+/**
+ * Utility functions for getting and setting things
+ * in {@link ApplicationSetup}.
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ *
+ */
 public class ApplicationSetupUtils {
+	/** 
+	 * Returns the value for the specified property, given 
+	 * a default value, in case the property was not defined
+	 * during the initialization of the system.
+	 * 
+	 * The property values are read from the properties file. If the value 
+	 * of the property <tt>terrier.usecontext</tt> is true, then the properties
+	 * file is overridden by the context. If the value of the property 
+	 * <tt>terrier.usecontext</tt> is false, then the properties file is overridden 
+	 * @param key The property to be returned
+	 * @param defaultValue The default value used, in case it is not defined
+	 * @return the value for the given property.
+	 */
 	public static int getProperty(String key, int defaultValue) {
 		String vs = ApplicationSetup.getProperty(key, defaultValue+"");
 		
@@ -40,6 +60,19 @@ public class ApplicationSetupUtils {
 		return defaultValue;
 	}
 	
+	/** 
+	 * Returns the value for the specified property, given 
+	 * a default value, in case the property was not defined
+	 * during the initialization of the system.
+	 * 
+	 * The property values are read from the properties file. If the value 
+	 * of the property <tt>terrier.usecontext</tt> is true, then the properties
+	 * file is overridden by the context. If the value of the property 
+	 * <tt>terrier.usecontext</tt> is false, then the properties file is overridden 
+	 * @param key The property to be returned
+	 * @param defaultValue The default value used, in case it is not defined
+	 * @return the value for the given property.
+	 */
 	public static float getProperty(String key, float defaultValue) {
 		String vs = ApplicationSetup.getProperty(key, defaultValue+"");
 		
@@ -49,6 +82,19 @@ public class ApplicationSetupUtils {
 		return defaultValue;
 	}
 	
+	/** 
+	 * Returns the value for the specified property, given 
+	 * a default value, in case the property was not defined
+	 * during the initialization of the system.
+	 * 
+	 * The property values are read from the properties file. If the value 
+	 * of the property <tt>terrier.usecontext</tt> is true, then the properties
+	 * file is overridden by the context. If the value of the property 
+	 * <tt>terrier.usecontext</tt> is false, then the properties file is overridden 
+	 * @param key The property to be returned
+	 * @param defaultValue The default value used, in case it is not defined
+	 * @return the value for the given property.
+	 */
 	public static double getProperty(String key, double defaultValue) {
 		String vs = ApplicationSetup.getProperty(key, defaultValue+"");
 		

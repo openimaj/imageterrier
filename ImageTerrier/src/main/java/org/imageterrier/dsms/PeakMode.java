@@ -28,7 +28,18 @@
  */
 package org.imageterrier.dsms;
 
+/**
+ * Different techniques for generating weights from 
+ * histograms in scoring.
+ * 
+ * @author Sina Samangooei <ss@ecs.soton.ac.uk>
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ *
+ */
 public enum PeakMode {
+	/**
+	 * weight by the histogram variance 
+	 */
 	VARIANCE {
 		float findVar(float [] hist) {
 			float mean = 0;
@@ -45,14 +56,18 @@ public enum PeakMode {
 				}
 			}
 			var /= totalSum;
-//			System.out.print(var);
+
 			return (float) var;
 		}
+		
 		@Override
 		public float weighting(float[] hist) {
 			return findVar(hist);
 		}
 	},
+	/**
+	 * weight by the normalised maximum value of the histogram  
+	 */
 	MAX {
 		
 		float findMax(float [] hist) {			
@@ -66,17 +81,27 @@ public enum PeakMode {
 			}
 			return max;
 		}
+		
 		@Override
 		public float weighting(float[] hist) {
 			return findMax(hist);
 		}
 	},
+	/**
+	 * Don't weight 
+	 */
 	NONE {
 		@Override
 		public float weighting(float[] hist) {
 			return 1f;
 		}
 	};
+	
+	/**
+	 * Get the weighting for a given histogram 
+	 * @param hist the histogram
+	 * @return the weighting
+	 */
 	public abstract float weighting(float[] hist);
 	
 	protected static void normalizeVec(float[] vec) {

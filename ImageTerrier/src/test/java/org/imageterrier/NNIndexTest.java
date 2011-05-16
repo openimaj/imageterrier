@@ -63,6 +63,12 @@ import org.terrier.structures.LexiconEntry;
 import org.terrier.structures.postings.TermPayloadIterablePosting;
 import org.terrier.utility.ApplicationSetup;
 
+/**
+ * NNTest nearest-neighbour index
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ *
+ */
 public class NNIndexTest {
 	static {
 		BasicTerrierConfig.configure(); //initialise terrier
@@ -74,6 +80,10 @@ public class NNIndexTest {
 	String indexName = "test";
 	QLFInMemoryCollection<QuantisedKeypoint> collection;
 	
+	/**
+	 * Setup tests
+	 * @throws IOException
+	 */
 	@Before
 	public void setup() throws IOException {
 		indexDir = File.createTempFile("terrier", "");
@@ -87,17 +97,27 @@ public class NNIndexTest {
 		collection = new QLFInMemoryCollection<QuantisedKeypoint>(docs);
 	}
 	
+	/**
+	 * cleanup tests
+	 */
 	@After
 	public void cleanup() {
 		for (File f : indexDir.listFiles()) f.delete();
 		indexDir.delete();
 	}
 	
+	/**
+	 * test indexing
+	 */
 	public void buildIndex() {
 		NNSinglePassIndexer indexer = new NNSinglePassIndexer(indexDir.toString(), indexName, NN);
 		indexer.createInvertedIndex(new Collection[] { collection });
 	}
 	
+	/**
+	 * test searching
+	 * @throws IOException
+	 */
 	public void testIndex() throws IOException {
 		Index index = Index.createIndex(indexDir.toString(), indexName);
 		NNInvertedIndex invidx = (NNInvertedIndex) index.getInvertedIndex();
@@ -167,6 +187,10 @@ public class NNIndexTest {
 		return request.getResultSet();
 	}
 	
+	/**
+	 * build and search index
+	 * @throws IOException
+	 */
 	@Test
 	public void test() throws IOException {
 		buildIndex();

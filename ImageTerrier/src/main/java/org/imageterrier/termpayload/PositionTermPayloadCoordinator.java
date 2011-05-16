@@ -44,16 +44,29 @@ import org.terrier.structures.Index;
 import org.terrier.structures.TermPayloadCoordinator;
 import org.terrier.utility.ArrayUtils;
 
+/**
+ * A Coordinator for storing term position information extracted through
+ * a {@link PositionSpec} into the term payloads of an inverted index.
+ * 
+ * Position information is converted to an integer array and stored using
+ * the specified number of bits in the index.
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ */
 public class PositionTermPayloadCoordinator extends TermPayloadCoordinator<int[]> {
-	/** The default number of NN terms */
-	public static final int DEFAULT_NEAREST_NEIGHBOURS = 15;
-	
 	protected PositionSpec positionSpec;
 	
+	/**
+	 * Default constructor.
+	 */
 	public PositionTermPayloadCoordinator() {
 		this.positionSpec = null;
 	}
 	
+	/**
+	 * Construct the PositionTermPayloadCoordinator with the given position specification.
+	 * @param positionSpec the position specification
+	 */
 	public PositionTermPayloadCoordinator(PositionSpec positionSpec) {
 		this.positionSpec = positionSpec;
 	}
@@ -148,6 +161,10 @@ public class PositionTermPayloadCoordinator extends TermPayloadCoordinator<int[]
 		return new int[size][];
 	}
 	
+	/**
+	 * Get the position specification for this coordinator
+	 * @return the position specification
+	 */
 	public PositionSpec getPositionSpec() {
 		return positionSpec;
 	}

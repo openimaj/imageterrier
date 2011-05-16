@@ -38,6 +38,14 @@ import org.terrier.structures.TermPayloadCoordinator;
 import org.terrier.structures.postings.BasicIterablePosting;
 import org.terrier.structures.postings.WritablePosting;
 
+/**
+ * An extension to {@link BasicIterablePosting} that allows payload
+ * data to be stored with each posting. 
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ *
+ * @param <PAYLOAD> type of payload
+ */
 public class TermPayloadIterablePosting<PAYLOAD> extends BasicIterablePosting implements TermPayloadPosting<PAYLOAD> {
 	/**
 	 * This stores info about the payload
@@ -46,12 +54,25 @@ public class TermPayloadIterablePosting<PAYLOAD> extends BasicIterablePosting im
 	
 	protected PAYLOAD[] payloads;
 	
+	/**
+	 * Create a new posting iterator
+	 */
 	public TermPayloadIterablePosting() { super(); }
 	
+	/** Create a new posting iterator
+	 * @param _bitFileReader BitIn to read the postings from
+	 * @param _numEntries number of postings in the list
+	 * @param doi document index to use to satisfy getDocumentLength()
+	 * @throws IOException thrown in an IO exception occurs
+	 */
 	public TermPayloadIterablePosting(BitIn _bitFileReader, int _numEntries, DocumentIndex doi) throws IOException {
 		super(_bitFileReader, _numEntries, doi);
 	}
 
+	/**
+	 * Set the payload coordinator
+	 * @param payloadConf the coordinator
+	 */
 	public void setPayloadConfig(TermPayloadCoordinator<PAYLOAD> payloadConf) {
 		this.payloadConf = payloadConf;
 	}

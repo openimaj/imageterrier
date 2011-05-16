@@ -40,15 +40,24 @@ import java.util.Map.Entry;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.openimaj.feature.local.list.MemoryLocalFeatureList;
 import org.openimaj.feature.local.quantised.QuantisedLocalFeature;
 import org.openimaj.hadoop.sequencefile.SequenceFileUtility;
 import org.openimaj.hadoop.sequencefile.TextBytesSequenceFileUtility;
+import org.terrier.indexing.Collection;
 import org.terrier.indexing.Document;
 
-
+/**
+ * A concrete implementation of a {@link Collection} of 
+ * {@link QLFDocument}s stored within a Hadoop {@link SequenceFile}.
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ *
+ * @param <F> type of feature
+ */
 public class QLFSequenceFilesCollection <F extends QuantisedLocalFeature<?>> implements QLFCollection<F> {
 	static Logger logger = Logger.getLogger(QLFSequenceFilesCollection.class);
 	

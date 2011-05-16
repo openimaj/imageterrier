@@ -35,34 +35,34 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 
 import org.terrier.compression.BitIn;
-import org.terrier.structures.BitIndexPointer;
-import org.terrier.structures.DocumentIndex;
-import org.terrier.structures.Index;
-import org.terrier.structures.IndexConfigurable;
-import org.terrier.structures.InvertedIndex;
-import org.terrier.structures.Lexicon;
-import org.terrier.structures.LexiconEntry;
-import org.terrier.structures.postings.BlockIterablePosting;
 import org.terrier.structures.postings.IterablePosting;
 import org.terrier.structures.postings.TermPayloadIterablePosting;
 
 
+/**
+ * This class implements the inverted index for performing retrieval. 
+ * The inverted index contains payload data for each term occurrence.
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ *
+ * @param <PAYLOAD> the payload type
+ */
 public class TermPayloadInvertedIndex<PAYLOAD> extends InvertedIndex implements IndexConfigurable {
 	protected int DocumentBlockCountDelta = 1;
 	protected TermPayloadCoordinator<PAYLOAD> payloadConf;
 
+	/**
+	 * Construct the inverted index.
+	 * @param index the index to which this inverted index belongs
+	 * @param structureName the name of the inverted index structure
+	 * @param _doi the document index
+	 * @param postingClass the class to use for iterating postings
+	 * @throws IOException
+	 */
 	public TermPayloadInvertedIndex(Index index, String structureName, DocumentIndex _doi, Class<? extends IterablePosting> postingClass) throws IOException {
 		super(index, structureName, _doi, postingClass);
 	}
-
-	public TermPayloadInvertedIndex(Index index, String structureName, DocumentIndex doi) throws IOException {
-		super(index, structureName, doi, BlockIterablePosting.class);
-	}
-
-	public TermPayloadInvertedIndex(Index index, String structureName) throws IOException {
-		this(index, structureName, index.getDocumentIndex());
-	}
-
+	
 	/** let it know which index to use */
 	@Override
 	public void setIndex(Index i) {
@@ -73,19 +73,7 @@ public class TermPayloadInvertedIndex<PAYLOAD> extends InvertedIndex implements 
 	}
 
 	/**
-	 * Returns a 2D array containing the document ids, 
-	 * the term frequencies, the field scores the block frequencies and 
-	 * the block ids for the given documents. 
-	 * @return int[][] the six dimensional [6][] array containing 
-	 *				 the document ids, frequencies, field scores and block 
-	 *				 frequencies, matchFreqs and the last vector contains the 
-	 *				 term identifiers and it has a different length from 
-	 *				 the document identifiers.
-	 * @param startOffset start byte of the postings in the inverted file
-	 * @param startBitOffset start bit of the postings in the inverted file
-	 * @param endOffset end byte of the postings in the inverted file
-	 * @param endBitOffset end bit of the postings in the inverted file
-	 * @param df the number of postings to expect 
+	 * {@inheritDoc}
 	 */
 	@Override
 	public int[][] getDocuments(BitIndexPointer pointer) {
@@ -93,7 +81,7 @@ public class TermPayloadInvertedIndex<PAYLOAD> extends InvertedIndex implements 
 		final byte startBitOffset = pointer.getOffsetBits();
 		final int df = pointer.getNumberOfEntries();
 
-		final int[][] documentTerms = new int[6][];
+		final int[][] documentTerms = new int[4][];
 		documentTerms[0] = new int[df];
 		documentTerms[1] = new int[df];
 		documentTerms[2] = new int[df];
@@ -128,10 +116,9 @@ public class TermPayloadInvertedIndex<PAYLOAD> extends InvertedIndex implements 
 	}
 
 	/**
-	 * For a given postings list return a map of
-	 * docid -> positions_of_each_term_instance
+	 * For a given postings list return a map of docid -> payloads_of_each_term_instance
 	 * @param pointer postings list
-	 * @return
+	 * @return document->payloads mapping
 	 */
 	public TIntObjectHashMap<PAYLOAD[]> getPayloads(BitIndexPointer pointer) {
 		final TIntObjectHashMap<PAYLOAD[]> docsMatches = new TIntObjectHashMap<PAYLOAD[]>();
@@ -164,6 +151,10 @@ public class TermPayloadInvertedIndex<PAYLOAD> extends InvertedIndex implements 
 		}
 	}
 
+	/**
+	 * Get the payload coordinator
+	 * @return the payload coordinator
+	 */
 	public TermPayloadCoordinator<PAYLOAD> getPayloadConfig() {
 		return payloadConf;
 	}

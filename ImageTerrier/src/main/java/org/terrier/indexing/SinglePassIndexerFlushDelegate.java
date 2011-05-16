@@ -30,6 +30,19 @@ package org.terrier.indexing;
 
 import java.io.IOException;
 
+/**
+ * An interface for classes capable of being delegated
+ * the role of flushing a run during single-pass 
+ * indexing with indexers based on {@link ExtensibleSinglePassIndexer}. 
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ */
 public interface SinglePassIndexerFlushDelegate {
+	/**
+	 * Force a flush of the current in-memory run to disk
+	 * and free-up the memory used.
+	 * 
+	 * @throws IOException
+	 */
 	public void forceFlush() throws IOException;
 }

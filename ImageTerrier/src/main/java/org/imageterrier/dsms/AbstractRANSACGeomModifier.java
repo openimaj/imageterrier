@@ -43,6 +43,7 @@ import org.openimaj.image.pixel.Pixel;
 import org.openimaj.math.geometry.point.Point2d;
 import org.openimaj.math.model.Model;
 import org.openimaj.math.model.fit.RANSAC;
+import org.openimaj.math.model.fit.RANSAC.PercentageInliersStoppingCondition;
 import org.openimaj.util.pair.Pair;
 import org.terrier.matching.MatchingQueryTerms;
 import org.terrier.matching.ResultSet;
@@ -53,10 +54,30 @@ import org.terrier.structures.Lexicon;
 import org.terrier.structures.LexiconEntry;
 
 
+/**
+ * Abstract base class for {@link DocumentScoreModifier}s that
+ * use RANSAC to fit a geometric model to matching pairs
+ * of visual terms. 
+ * 
+ * Use of this class (or subclasses) requires that you are 
+ * using a {@link PositionInvertedIndex} with a {@link PositionSpec}
+ * that has encoded spatial (x and y) coordinates for each 
+ * term posting.
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ *
+ */
 public abstract class AbstractRANSACGeomModifier implements DocumentScoreModifier {
+	/** The number of documents to apply re-ranking to */
 	public static final String N_DOCS_TO_RERANK = "GeomScoreModifier.num_docs_rerank";
+	
+	/** A threshold for removing matching pairs where one of the terms matches many terms */
 	public static final String FILTERING_THRESHOLD = "GeomScoreModifier.filter_thresh";
-	public static final String RANSAC_NUM_MATCHES_SUCCESS = "GeomScoreModifier.ransac_num_success_matches";
+	
+	/** The percentage of matches required for a successful match */
+	public static final String RANSAC_PER_MATCHES_SUCCESS = "GeomScoreModifier.ransac_per_success_matches";
+	
+	/** The percentage of matches required for a successful match */
 	public static final String RANSAC_MAX_ITER = "GeomScoreModifier.ransac_max_iter";
 
 	@Override
@@ -105,9 +126,9 @@ public abstract class AbstractRANSACGeomModifier implements DocumentScoreModifie
 		Model<Point2d, Point2d> hm = makeModel();
 		
 		int nIter = ApplicationSetupUtils.getProperty(RANSAC_MAX_ITER, 100);
-		int nItemsSuccess = ApplicationSetupUtils.getProperty(RANSAC_NUM_MATCHES_SUCCESS, 7);
+		double perItemsSuccess = ApplicationSetupUtils.getProperty(RANSAC_PER_MATCHES_SUCCESS, 0.5);
 		
-		RANSAC<Point2d, Point2d> ransac = new RANSAC<Point2d, Point2d>(hm, nIter, new RANSAC.NumberInliersStoppingCondition(nItemsSuccess), false);
+		RANSAC<Point2d, Point2d> ransac = new RANSAC<Point2d, Point2d>(hm, nIter, new PercentageInliersStoppingCondition(perItemsSuccess), false);
 		
 		for (int i=0; i<nRerankDocs; i++) {
 			int docid = resultSet.getDocids()[i];
@@ -119,6 +140,10 @@ public abstract class AbstractRANSACGeomModifier implements DocumentScoreModifie
 		return true;
 	}
 
+	/**
+	 * Make a new model instance.
+	 * @return the model
+	 */
 	public abstract Model<Point2d, Point2d> makeModel();
 	
 	protected void filter(List<Pair<Point2d>> in) {

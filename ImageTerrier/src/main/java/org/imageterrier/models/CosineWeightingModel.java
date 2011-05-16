@@ -30,6 +30,12 @@ package org.imageterrier.models;
 
 import org.terrier.matching.models.WeightingModel;
 
+/**
+ * A {@link WeightingModel} that calculates an unweighted
+ * cosine distance between query and target vectors. 
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ */
 public class CosineWeightingModel extends WeightingModel {
 	private static final long serialVersionUID = 1L;
 	
@@ -52,9 +58,6 @@ public class CosineWeightingModel extends WeightingModel {
 
 	@Override
 	public double score(double tf, double docLength, double nT, double F_t, double keyFrequency) {
-//		double dtf = tf/docLength;
-//		double score = Math.abs(keyFrequency - dtf) - keyFrequency - dtf;
-//		return score;
 		throw new UnsupportedOperationException();
 	}
 

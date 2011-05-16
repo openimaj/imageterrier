@@ -30,11 +30,17 @@ package org.imageterrier.models;
 
 import org.terrier.matching.models.WeightingModel;
 
+/**
+ * A {@link WeightingModel} that calculates the L1 distance 
+ * between IDF weighted query and target vectors. 
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ */
 public class L1IDFWeightingModel extends WeightingModel {
 	private static final long serialVersionUID = 1L;
 	
 	/** model name */
-	private static final String name = "UNWEIGHTED_L1_DISTANCE";
+	private static final String name = "L1IDF_DISTANCE";
 	
 	@Override
 	public String getInfo() {

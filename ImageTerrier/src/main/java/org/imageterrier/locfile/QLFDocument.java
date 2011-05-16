@@ -47,13 +47,21 @@ import org.openimaj.feature.local.Location;
 import org.openimaj.feature.local.list.FileLocalFeatureList;
 import org.openimaj.feature.local.list.MemoryLocalFeatureList;
 import org.openimaj.feature.local.quantised.QuantisedLocalFeature;
-import org.openimaj.image.feature.local.affine.AffineSimulationKeypoint;
-import org.openimaj.image.feature.local.affine.AffineSimulationKeypoint.AffineSimulationKeypointLocation;
 import org.openimaj.knn.CoordinateKDTree;
 import org.openimaj.math.geometry.point.Point2dImpl;
+import org.openimaj.math.geometry.shape.Rectangle;
 import org.terrier.indexing.Document;
 
 
+/**
+ * A concrete {@link Document} implementation for documents
+ * built up of a list of visual terms in the form of
+ * {@link QuantisedLocalFeature}s.
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ *
+ * @param <F>
+ */
 public class QLFDocument<F extends QuantisedLocalFeature<?>> implements Document {
 	protected List<F> featureList;
 	protected Iterator<F> iterator;
@@ -62,15 +70,42 @@ public class QLFDocument<F extends QuantisedLocalFeature<?>> implements Document
 	protected String termSuffix = "";
 	protected F current = null;
 	
-	//TODO get metadata from list and store in props
-	public QLFDocument(File file, Class<F> clz, String docno, Map<String,String> extraProps) throws IOException {
+	/**
+	 * Construct a new QLFDocument instance from the contents of the given file.
+	 * The file contents must be compatible with {@link FileLocalFeatureList}.
+	 * 
+	 * @param file the file to read
+	 * @param clz the class of {@link QuantisedLocalFeature}.
+	 * @param docno the document identifier or number
+	 * @param extraProps a map of properties to store in the metadata index
+	 * @throws IOException
+	 */
+	public QLFDocument(File file, Class<F> clz, String docno, Map<String, String> extraProps) throws IOException {
+		//TODO get metadata from list and store in props
 		this(FileLocalFeatureList.read(file, clz), docno, extraProps);
 	}
 	
+	/**
+	 * Construct a new QLFDocument instance from the contents of the given byte array.
+	 * The byte array contents must be compatible with {@link MemoryLocalFeatureList}.
+	 * 
+	 * @param bytes an array of bytes from which to read the features.
+	 * @param clz the class of {@link QuantisedLocalFeature}.
+	 * @param docno the document identifier or number
+	 * @param extraProps a map of properties to store in the metadata index
+	 * @throws IOException
+	 */
 	public QLFDocument(byte[] bytes, Class<F> clz, String docno, Map<String,String> extraProps) throws IOException {
 		this(MemoryLocalFeatureList.read(new ByteArrayInputStream(bytes), clz), docno, extraProps);
 	}
 	
+	/**
+	 * Construct a new QLFDocument instance from the contents of the given feature list.
+	 * 
+	 * @param list the feature list
+	 * @param docno the document identifier or number
+	 * @param extraProps a map of properties to store in the metadata index
+	 */
 	public QLFDocument(List<F> list, String docno, Map<String,String> extraProps) {
 		featureList = new MemoryLocalFeatureList<F>(list);
 		iterator = list.iterator();
@@ -113,11 +148,26 @@ public class QLFDocument<F extends QuantisedLocalFeature<?>> implements Document
 		return props;
 	}
 	
+	/**
+	 * Get the underlying list of features.
+	 * @return the feature list
+	 */
 	public List<F> getEntries() {
 		return featureList;
 	}
 	
-	public void filter(float x1, float y1, float x2, float y2) {
+	/**
+	 * Convenience methods to filter all features that have spatial locations 
+	 * outside the given rectangle. It is assumed that the 0th ordinate of the
+	 * feature location is the x-ordinate, and the 1st is the y ordinate.
+	 * @param rect the rectangle.
+	 */
+	public void filter(Rectangle rect) {
+		float x1 = rect.x;
+		float y1 = rect.y;
+		float x2 = rect.x + rect.width;
+		float y2 = rect.y + rect.height;
+		
 		List<F> newEntries = new ArrayList<F>();
 		TIntObjectHashMap<List<F>> newIndex = new TIntObjectHashMap<List<F>>();
 	
@@ -138,15 +188,32 @@ public class QLFDocument<F extends QuantisedLocalFeature<?>> implements Document
 		current = null;
 	}
 
+	/**
+	 * Reset the document to its default state, with the 
+	 * current term pointer just before the first term.
+	 */
 	public void reset() {
 		iterator = featureList.iterator();
 		current = null;		
 	}
 
+	/**
+	 * Get the location associated with the current term
+	 * pointer.
+	 * @return the current location.
+	 */
 	public Location getLocation() {
 		return current.getLocation();
 	}
 	
+	/**
+	 * Get the spatially nearest neighbouring terms to the
+	 * target term. It is assumed that the 0th ordinate of the
+	 * feature location is the x-ordinate, and the 1st is the y ordinate.
+	 * @param target the target term. 
+	 * @param nNeighbours the number of neighbours.
+	 * @return a list of neighbouring terms
+	 */
 	public List<F> getNearestNeighbours(F target, int nNeighbours) {
 		SortedSet<DistEntry> neighbourDist = new TreeSet<DistEntry>();
 		
@@ -182,6 +249,13 @@ public class QLFDocument<F extends QuantisedLocalFeature<?>> implements Document
 		return neighbours;
 	}
 	
+	/**
+	 * Get the spatially nearest neighbouring terms to the
+	 * current term. It is assumed that the 0th ordinate of the
+	 * feature location is the x-ordinate, and the 1st is the y ordinate.
+	 * @param limit the number of neighbours.
+	 * @return an array of neighbouring terms ids
+	 */
 	public int [] getCurrentNearestNeighbourTIds(int limit) {
 		List<F> nns = getNearestNeighbours(current, limit);
 		int [] ids = new int[nns.size()];
@@ -209,6 +283,17 @@ public class QLFDocument<F extends QuantisedLocalFeature<?>> implements Document
 		tree = new CoordinateKDTree<Pt>(pts);
 	}
 	
+	/**
+	 * Get the spatially nearest neighbouring terms to the
+	 * target term. It is assumed that the 0th ordinate of the
+	 * feature location is the x-ordinate, and the 1st is the y ordinate.
+	 * 
+	 * This method uses an underlying KD-Tree to speed the neighbour operation.
+	 * 
+	 * @param target the target term. 
+	 * @param nNeighbours the number of neighbours.
+	 * @return a list of neighbouring terms
+	 */
 	public int [] getNearestNeighboursKD(F target, int nNeighbours) {
 		if (tree == null) makeTree();
 		
@@ -224,6 +309,16 @@ public class QLFDocument<F extends QuantisedLocalFeature<?>> implements Document
 		return ids;
 	}
 	
+	/**
+	 * Get the spatially nearest neighbouring terms to the
+	 * current term. It is assumed that the 0th ordinate of the
+	 * feature location is the x-ordinate, and the 1st is the y ordinate.
+	 * 
+	 * This method uses an underlying KD-Tree to speed the neighbour operation.
+	 * 
+	 * @param limit the number of neighbours.
+	 * @return an array of neighbouring terms ids
+	 */
 	public int [] getCurrentNearestNeighbourTIdsKD(int limit) {
 		return getNearestNeighboursKD(current, limit);
 	}
@@ -238,15 +333,5 @@ public class QLFDocument<F extends QuantisedLocalFeature<?>> implements Document
 			if (this.distance > o.distance) return 1;
 			return 0;
 		}
-	}
-
-	public int getSimulationIndex() {
-		F ln = current;
-		Location k = ln.getLocation();
-		if(k instanceof AffineSimulationKeypoint.AffineSimulationKeypointLocation ){
-			AffineSimulationKeypoint.AffineSimulationKeypointLocation ak = (AffineSimulationKeypointLocation) k;
-			return ak.index;
-		}
-		return 0;
 	}
 }

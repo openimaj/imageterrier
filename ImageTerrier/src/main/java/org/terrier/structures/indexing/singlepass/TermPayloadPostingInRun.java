@@ -34,12 +34,25 @@ import org.terrier.compression.BitOut;
 import org.terrier.structures.TermPayloadCoordinator;
 import org.terrier.structures.indexing.singlepass.SimplePostingInRun;
 
+/**
+ * Class holding the information for a posting list containing payloads read
+ * from a previously written run at disk. Used in the merging phase of the Single pass inversion method.
+ * This class knows how to append itself to a {@link org.terrier.compression.BitOut} and it
+ * represents the a posting with payloads: <code>(TF, df, [docid, tf, payload_1...payload_tf])</code>
+
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ *
+ * @param <PAYLOAD> the type of payload
+ */
 public class TermPayloadPostingInRun<PAYLOAD> extends SimplePostingInRun {
 	/**
 	 * This stores info about the payload
 	 */
 	protected TermPayloadCoordinator<PAYLOAD> payloadConf;
 	
+	/**
+	 * Default Constructor
+	 */
 	public TermPayloadPostingInRun() {
 		super();
 	}
@@ -75,6 +88,10 @@ public class TermPayloadPostingInRun<PAYLOAD> extends SimplePostingInRun {
 		return last;
 	}
 
+	/**
+	 * Set the payload coordinator.
+	 * @param payloadConf the coordinator.
+	 */
 	public void setPayloadConfig(TermPayloadCoordinator<PAYLOAD> payloadConf) {
 		this.payloadConf = payloadConf;
 	}

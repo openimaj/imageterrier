@@ -36,7 +36,17 @@ import org.apache.log4j.xml.DOMConfigurator;
 
 import org.terrier.utility.ApplicationSetup;
 
+/**
+ * Utility to help enable the use of Terrier without having 
+ * to install anything
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ *
+ */
 public class BasicTerrierConfig {
+	/**
+	 * log4j configuration
+	 */
 	public static final String DEFAULT_LOG4J_CONFIG = 
 		  "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>"
 		+ "<!DOCTYPE log4j:configuration SYSTEM \"log4j.dtd\">" 
@@ -55,7 +65,11 @@ public class BasicTerrierConfig {
 		+ " </logger>"
 		+ "</log4j:configuration>";
 	
+	/**
+	 * The log level property string
+	 */
 	public static String LOG_LEVEL = "imageterrier.log.level";
+	
 	/**
 	 * This method attempts to aid the circumvention of the terrier ApplicationSetup badness!
 	 * We should really re-write that bit of terrier...

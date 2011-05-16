@@ -35,12 +35,23 @@ import org.terrier.structures.indexing.DocumentPostingList;
 import org.terrier.structures.indexing.TermPayloadDocumentPostingList;
 import org.terrier.structures.indexing.singlepass.MemoryPostings;
 
+/**
+ * Postings in memory with payloads
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ *
+ * @param <PAYLOAD> the payload type
+ */
 public class TermPayloadMemoryPostings<PAYLOAD> extends MemoryPostings { 
 	/**
 	 * This stores info about the payload
 	 */
 	protected TermPayloadCoordinator<PAYLOAD> payloadConf;
 	
+	/**
+	 * Construct the memory postings with the sepecified coordinator.
+	 * @param payloadConf the coordinator.
+	 */
 	public TermPayloadMemoryPostings(TermPayloadCoordinator<PAYLOAD> payloadConf) {
 		this.payloadConf = payloadConf;
 	}
@@ -54,6 +65,15 @@ public class TermPayloadMemoryPostings<PAYLOAD> extends MemoryPostings {
 			add(term, docid, docPostings.getFrequency(term), docPostings.getPayloads(term)); 	 
 	}
 
+	/**
+	 * Add a new posting for the specified term-document pair. The number of payloads
+	 * should equal the frequency.
+	 * @param term the term.
+	 * @param doc the document that the term occurred in.
+	 * @param frequency the number of times the term occurred in the document.
+	 * @param payloads the payloads for the term.
+	 * @throws IOException
+	 */
 	@SuppressWarnings("unchecked")
 	public void add(String term, int doc, int frequency, PAYLOAD[] payloads) throws IOException {
 		TermPayloadPosting<PAYLOAD> post;

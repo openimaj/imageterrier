@@ -44,16 +44,34 @@ import org.terrier.indexing.Document;
 import org.terrier.structures.Index;
 import org.terrier.structures.TermPayloadCoordinator;
 
+/**
+ * Coordinator for storing the term identifiers for the N nearest spatial 
+ * neighbouring terms of each term occurrence in the index.
+ * 
+ * The neighbour payload is encoded by ordering the list of neighbours and
+ * storing the termid deltas using gamma coding.
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ *
+ */
 public class NNTermPayloadCoordinator extends TermPayloadCoordinator<int[]> {
 	/** The default number of NN terms */
 	public static final int DEFAULT_NEAREST_NEIGHBOURS = 15;
 	
 	protected int numNearestNeighbours;
 	
+	/**
+	 * Default constructor; uses 15 neighbouring terms.
+	 */
 	public NNTermPayloadCoordinator() {
 		this(DEFAULT_NEAREST_NEIGHBOURS);
 	}
 	
+	/**
+	 * Construct the NNTermPayloadCoordinator to use the given number
+	 * of neighbouring terms.
+	 * @param numNearestNeighbours number of neighbouring terms.
+	 */
 	public NNTermPayloadCoordinator(int numNearestNeighbours) {
 		this.numNearestNeighbours = numNearestNeighbours;
 	}

@@ -347,6 +347,13 @@ public class PositionSpec {
 	protected double [] lowerBounds;
 	protected double [] upperBounds;
 
+	/**
+	 * Construct a PositionSpec with the given parameters.
+	 * @param mode the mode
+	 * @param positionBits the number of bits to use for encoding each ordinate
+	 * @param lowerBounds the minimum allowed value for each ordinate 
+	 * @param upperBounds the maximum allowed value for each ordinate
+	 */
 	public PositionSpec(PositionSpecMode mode, int [] positionBits, double [] lowerBounds, double [] upperBounds) {
 		this.mode = mode;
 		this.positionBits = positionBits == null ? new int[0] : positionBits;
@@ -361,30 +368,61 @@ public class PositionSpec {
 			throw new RuntimeException("invalid number of upperBounds");
 	}
 	
+	/**
+	 * Get the number of bits for each ordinate
+	 * @return the number of bits for each ordinate
+	 */
 	public int [] getPositionBits() {
 		return positionBits;
 	}
 
+	/**
+	 * Set the number of bits for each ordinate
+	 * @param positionBits the bits per ordinate
+	 */
 	public void setPositionBits(int [] positionBits) {
 		this.positionBits = positionBits;
 	}
 
+	/**
+	 * Get the encoded position of the current term
+	 * in the document. 
+	 * @param document the document
+	 * @return the encoded position
+	 */
 	public int [] getPosition(QLFDocument<?> document) {
 		return mode.encodePosition(document.getLocation(), positionBits, lowerBounds, upperBounds);
 	}
 
+	/**
+	 * Get the position mode.
+	 * @return the mode
+	 */
 	public PositionSpecMode getMode() {
 		return mode;
 	}
 
+	/**
+	 * Get the minimum allowed value for each ordinate
+	 * @return the minimum allowed value for each ordinate
+	 */
 	public double[] getLowerBounds() {
 		return lowerBounds;
 	}
 	
+	/**
+	 * Get the maximum allowed value for each ordinate
+	 * @return the maximum allowed value for each ordinate
+	 */
 	public double[] getUpperBounds() {
 		return upperBounds;
 	}
 	
+	/**
+	 * Decode the encoded position data into a {@link Location} object.
+	 * @param encodedData the encoded data.
+	 * @return a new Location object constructed from the encoded data.
+	 */
 	public Location decode(int [] encodedData) {
 		return mode.decodePosition(encodedData, positionBits, lowerBounds, upperBounds);
 	}

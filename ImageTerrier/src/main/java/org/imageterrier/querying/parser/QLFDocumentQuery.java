@@ -32,12 +32,25 @@ import org.imageterrier.locfile.QLFDocument;
 import org.openimaj.feature.local.quantised.QuantisedLocalFeature;
 import org.terrier.querying.parser.MultiTermQuery;
 
-
+/**
+ * A {@link MultiTermQuery} constructed from an instance of
+ * a {@link QLFDocument}. This is used to use a whole document
+ * as a query (reasonable in ImageTerrier as whole images are
+ * usually the query). 
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ *
+ * @param <T> the type of {@link QuantisedLocalFeature}.
+ */
 public class QLFDocumentQuery<T extends QuantisedLocalFeature<?>> extends MultiTermQuery {
 	private static final long serialVersionUID = 1L;
 
 	protected QLFDocument<T> document;
 	
+	/**
+	 * Construct the query from the given document
+	 * @param document the document 
+	 */
 	public QLFDocumentQuery(QLFDocument<T> document) {
 		super();
 		
@@ -50,6 +63,10 @@ public class QLFDocumentQuery<T extends QuantisedLocalFeature<?>> extends MultiT
 		document.reset();
 	}
 	
+	/**
+	 * Get the underlying document used to construct the query
+	 * @return the document
+	 */
 	public QLFDocument<T> getDocument() {
 		return document;
 	}

@@ -33,16 +33,36 @@ import java.io.IOException;
 import org.terrier.structures.TermPayloadCoordinator;
 import org.terrier.structures.indexing.singlepass.Posting;
 
+/**
+ * Class representing a posting with payloads list in memory.
+ * It keeps the information for <code>TF, Nt</code>, and the sequence <code>[doc, tf, posting1...postingtf]</code>
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ *
+ * @param <PAYLOAD> the payload type.
+ */
 public class TermPayloadPosting<PAYLOAD> extends Posting {
 	/**
 	 * This stores info about the payload
 	 */
 	protected TermPayloadCoordinator<PAYLOAD> payloadConf;
 	
+	/**
+	 * Construct a TermPayloadPosting with the specified coordinator
+	 * @param payloadConf the coordinator
+	 */
 	public TermPayloadPosting(TermPayloadCoordinator<PAYLOAD> payloadConf) {
 		this.payloadConf = payloadConf;
 	}
 	
+	/**
+	 * Writes the first document in the posting list. The number of payloads 
+	 * should be equal to the frequency.
+	 * @param doc the document identifier.
+	 * @param frequency the frequency of the term in the document.
+	 * @param payloads the payloads
+	 * @throws IOException if an I/O error ocurrs.
+	 */	
 	public void writeFirstDoc(final int doc, final int frequency, final PAYLOAD[] payloads) throws IOException {
 		super.writeFirstDoc(doc, frequency);
 
@@ -52,10 +72,10 @@ public class TermPayloadPosting<PAYLOAD> extends Posting {
 
 	/**
 	 * Inserts a new document in the posting list. Document insertions must be done
-	 * in order.  
+	 * in order. The number of payloads should be equal to the frequency.
 	 * @param doc the document identifier.
 	 * @param freq the frequency of the term in the document.
-	 * @param blockids the blockids for all the term
+	 * @param payloads the payloads.
 	 * @return the updated term frequency.
 	 * @throws IOException if and I/O error occurs.
 	 */

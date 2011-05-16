@@ -60,6 +60,12 @@ import org.terrier.utility.ApplicationSetup;
 
 
 
+/**
+ * Test the PositionIndex
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ *
+ */
 public class PositionIndexTest {
 	static {
 		BasicTerrierConfig.configure(); //initialise terrier
@@ -70,6 +76,10 @@ public class PositionIndexTest {
 	QLFInMemoryCollection<QuantisedKeypoint> collection;
 	PositionSpec positionSpec;
 	
+	/**
+	 * Setup tests
+	 * @throws IOException
+	 */
 	@Before
 	public void setup() throws IOException {
 		indexDir = File.createTempFile("terrier", "");
@@ -85,17 +95,27 @@ public class PositionIndexTest {
 		positionSpec = new PositionSpec(PositionSpec.PositionSpecMode.SPATIAL_SCALE_ORI, new int[] {8,8,8,8}, new double[]{0,0,0,-Math.PI}, new double[]{640,480,100,Math.PI});
 	}
 	
+	/**
+	 * Cleanup tests
+	 */
 	@After
 	public void cleanup() {
 		for (File f : indexDir.listFiles()) f.delete();
 		indexDir.delete();
 	}
 	
+	/**
+	 * test indexing
+	 */
 	public void buildIndex() {
 		PositionSinglePassIndexer indexer = new PositionSinglePassIndexer(indexDir.toString(), indexName, positionSpec);
 		indexer.createInvertedIndex(new Collection[] { collection });
 	}
 	
+	/**
+	 * test searching
+	 * @throws IOException
+	 */
 	public void testIndex() throws IOException {
 		Index index = Index.createIndex(indexDir.toString(), indexName);
 		PositionInvertedIndex invidx = (PositionInvertedIndex) index.getInvertedIndex();
@@ -149,6 +169,10 @@ public class PositionIndexTest {
 		return request.getResultSet();
 	}
 	
+	/**
+	 * Test indexing and searching
+	 * @throws IOException
+	 */
 	@Test
 	public void test() throws IOException {
 		buildIndex();

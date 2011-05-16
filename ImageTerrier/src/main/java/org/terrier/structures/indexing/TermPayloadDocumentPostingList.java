@@ -34,8 +34,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.terrier.structures.TermPayloadCoordinator;
-import org.terrier.structures.indexing.DocumentPostingList;
 
+/**
+ * Represents the payload postings of one document. Uses HashMaps internally.
+ * <p>
+ * <b>Properties:</b><br>
+ * <ul>
+ * 		<li><tt>indexing.avg.unique.terms.per.doc</tt> - number of unique terms per doc on average, used to tune the initial 
+ * size of the hashmaps used in this class.</li>
+ * 
+ * </ul>
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ *
+ * @param <PAYLOAD> the payload type
+ */
 public class TermPayloadDocumentPostingList<PAYLOAD> extends DocumentPostingList {
 	/** mapping term to blockids in this document */
 	protected final THashMap<String, List<PAYLOAD>> term_blocks = new THashMap<String, List<PAYLOAD>>(AVG_DOCUMENT_UNIQUE_TERMS);
@@ -45,26 +58,38 @@ public class TermPayloadDocumentPostingList<PAYLOAD> extends DocumentPostingList
 
 	protected TermPayloadCoordinator<PAYLOAD> payloadConf;
 	
-	/** Instantiate a new block document posting list. Saves position information, but no fields */
+	/** 
+	 * Instantiate a new block document posting list. Saves position information, but no fields. 
+	 * @param payloadConf the payload coordinator
+	 */
 	public TermPayloadDocumentPostingList(TermPayloadCoordinator<PAYLOAD> payloadConf) {
 		super();
 		this.payloadConf = payloadConf;
 	} 
 	
-	/** Insert a term into this document with given position */
-	public void insert(String t, PAYLOAD position) {
+	/** 
+	 * Insert a term into this document with given payload 
+	 * @param t the term to add
+	 * @param payload the payload
+	 */
+	public void insert(String t, PAYLOAD payload) {
 		insert(t);
 		List<PAYLOAD> nn = null;
 		if ((nn = term_blocks.get(t)) == null)
 		{
-			term_blocks.put(t, nn = new ArrayList<PAYLOAD>());
+			term_blocks.put(t, nn = new ArrayList<PAYLOAD>(1));
 		}
-		if (position != null) {
-			nn.add(position);
+		if (payload != null) {
+			nn.add(payload);
 		}
 		blockCount++;
 	}
 	
+	/**
+	 * Get all the payloads associated with the given term in this document
+	 * @param term the term
+	 * @return the payloads
+	 */
 	public PAYLOAD[] getPayloads(String term) {
 		PAYLOAD [] rtr = payloadConf.makePayloadArray(term_blocks.get(term).size());
 		int i = 0;

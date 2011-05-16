@@ -34,7 +34,16 @@ import org.imageterrier.locfile.PositionSpec;
 import org.imageterrier.locfile.PositionSpec.PositionSpecMode;
 import org.junit.Test;
 
+/**
+ * Tests for the PositionSpec class
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ *
+ */
 public class PositionSpecTests {
+	/**
+	 * Test encoding 
+	 */
 	@Test
 	public void testEncode() {
 		assertEquals(0, PositionSpec.PositionSpecMode.NONE.encode(0, 0, 10, 8));
@@ -42,6 +51,9 @@ public class PositionSpecTests {
 		assertEquals(127, PositionSpec.PositionSpecMode.NONE.encode(0, -10, 10, 8));
 	}
 	
+	/**
+	 * Test decoding
+	 */
 	@Test
 	public void testDecode() {
 		assertEquals(0, PositionSpec.PositionSpecMode.NONE.decode(0, 0, 10, 8), 0.05);
@@ -49,6 +61,9 @@ public class PositionSpecTests {
 		assertEquals(0, PositionSpec.PositionSpecMode.NONE.decode(127, -10, 10, 8), 0.05);
 	}
 	
+	/**
+	 * Test decoding from string
+	 */
 	@Test
 	public void testDecodeString() {
 		PositionSpec spec = new PositionSpec(PositionSpecMode.SPATIAL, new int[] {2,3}, new double[] {0,1}, new double[]{10,11});

@@ -30,7 +30,17 @@ package org.terrier.structures.postings;
 
 import org.terrier.structures.postings.Posting;
 
+/**
+ * A posting that stores payloads.
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ *
+ * @param <PAYLOAD> the payload type
+ */
 public interface TermPayloadPosting<PAYLOAD> extends Posting {
-	/** Return payloads of occurrences */
+	/** 
+	 * Get payloads of occurrences 
+	 * @return an array of payloads corresponding to the posting.
+	 */
 	public PAYLOAD[] getPayloads();
 }

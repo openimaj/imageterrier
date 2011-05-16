@@ -34,7 +34,17 @@ import org.junit.Test;
 import org.openimaj.feature.local.list.MemoryLocalFeatureList;
 import org.openimaj.image.feature.local.keypoints.quantised.QuantisedKeypoint;
 
+/**
+ * Tests for QLFDocument
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ *
+ */
 public class QLFDocumentTest {
+	/**
+	 * Test nearest-neighbour method
+	 * @throws IOException
+	 */
 	@Test
 	public void testNN() throws IOException {
 		long t1 = System.currentTimeMillis();
@@ -50,6 +60,10 @@ public class QLFDocumentTest {
 		System.out.println(t2-t1);
 	}
 	
+	/**
+	 * Test nearest-neighbour method
+	 * @throws IOException
+	 */
 	@Test
 	public void testNN2() throws IOException {
 		long t1 = System.currentTimeMillis();

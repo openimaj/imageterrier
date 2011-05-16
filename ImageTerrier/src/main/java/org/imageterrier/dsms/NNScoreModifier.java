@@ -46,8 +46,13 @@ import org.terrier.structures.Lexicon;
 import org.terrier.structures.LexiconEntry;
 
 
+/**
+ * An score modifier that can be used to re-weight retrieved documents
+ * in the style of Sivic and Zisserman's "VideoGoogle" paper.
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ */
 public class NNScoreModifier implements DocumentScoreModifier {
-
 	@Override
 	public String getName() {
 		return "NNScoreModifier";

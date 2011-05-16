@@ -47,7 +47,16 @@ import org.terrier.structures.indexing.singlepass.TermPayloadPostingInRun;
 import org.terrier.structures.postings.TermPayloadIterablePosting;
 import org.terrier.terms.TermPipeline;
 
-
+/**
+ * A single-pass indexer capable of adding term payload information
+ * to each posting. 
+ * 
+ * @see BasicSinglePassIndexer
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ *
+ * @param <PAYLOAD> the payload type
+ */
 public class TermPayloadSinglePassIndexer<PAYLOAD> extends ExtensibleSinglePassIndexer {
 	protected TermPayloadCoordinator<PAYLOAD> payloadConf;
 	protected PAYLOAD currentPayload;
@@ -82,7 +91,15 @@ public class TermPayloadSinglePassIndexer<PAYLOAD> extends ExtensibleSinglePassI
 		this.payloadConf = payloadConf;
 	}
 
-	
+	/**
+	 * Constructs an instance of a TermPayloadSinglePassIndexer, using the given path name
+	 * for storing the data structures and TermPayloadCoordinator for controlling what and how 
+	 * payloads will be written to the index.
+	 * @param pathname String the path where the data structures will be created. This is assumed to be
+	 * absolute.
+	 * @param prefix String the prefix of the index, usually "data".
+	 * @param payloadConf the payload coordinator
+	 */
 	public TermPayloadSinglePassIndexer(String pathname, String prefix, TermPayloadCoordinator<PAYLOAD> payloadConf) {
 		this(pathname, prefix, payloadConf, TermPayloadInvertedIndex.class);
 	}
