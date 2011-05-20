@@ -240,14 +240,26 @@ public class BasicSearcher {
 				return;
 			}
 			
-			if (options.displayQuery())
-				searcher.displayImage("Query:  " + options.getQueryImage(), options.getQueryImage());
+			if (options.getQueryImage().isDirectory()) {
+				for (File f : options.getQueryImage().listFiles()) {
+					try {
+						ResultSet rs = searcher.search(f, options.getRoiCoords(), options);
+						System.out.println("Results from querying with: " + f.getName());
+						searcher.printResultSet(rs, options.getLimit());
+					} catch (Exception e) {
+						//ignore it
+					}
+				}
+			} else {
+				if (options.displayQuery())
+					searcher.displayImage("Query:  " + options.getQueryImage(), options.getQueryImage());
 			
-			ResultSet rs = searcher.search(options.getQueryImage(), options.getRoiCoords(), options); 
-			searcher.printResultSet(rs, options.getLimit());
+				ResultSet rs = searcher.search(options.getQueryImage(), options.getRoiCoords(), options); 
+				searcher.printResultSet(rs, options.getLimit());
 			
-			if (options.displayResults())
-				searcher.displayResults("Results:  " + options.getQueryImage(), rs, options.getLimit());
+				if (options.displayResults())
+					searcher.displayResults("Results:  " + options.getQueryImage(), rs, options.getLimit());
+			}
 		} else if (options.isServer()) { 
 			BasicSearcherXmlRpcServlet.options = options;
 			BasicSearcherXmlRpcServlet.searcher = searcher;
