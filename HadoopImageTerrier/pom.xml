@@ -10,7 +10,7 @@
 	<artifactId>HadoopImageTerrier</artifactId>
 	<version>3.0.1-SNAPSHOT</version>
 	<name>HadoopImageTerrier</name>
-	<url>http://www.imageterrier.org</url>
+	<url>http://www.imageterrier.org/HadoopImageTerrier</url>
 	<inceptionYear>2011</inceptionYear>
 	<description>
 		ImageTerrier Hadoop indexing implementation
@@ -57,7 +57,7 @@
 		<developer>
 			<id>davedupplaw</id>
 			<name>David Dupplaw</name>
-			<email>ss@ecs.soton.ac.uk</email>
+			<email>dpd@ecs.soton.ac.uk</email>
 			<url>http://www.ecs.soton.ac.uk/people/dpd</url>
 			<organization>The University of Southampton</organization>
 			<organizationUrl>http://www.soton.ac.uk</organizationUrl>
