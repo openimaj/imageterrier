@@ -4,11 +4,11 @@
 	<parent>
 		<artifactId>imageterrier-master</artifactId>
 		<groupId>org.imageterrier</groupId>
-		<version>3.0.1-SNAPSHOT</version>
+		<version>3.0.1</version>
 	</parent>
 	<groupId>org.imageterrier</groupId>
 	<artifactId>HadoopImageTerrier</artifactId>
-	<version>3.0.1-SNAPSHOT</version>
+	<version>3.0.1</version>
 	<name>HadoopImageTerrier</name>
 	<url>http://www.imageterrier.org/HadoopImageTerrier</url>
 	<inceptionYear>2011</inceptionYear>
@@ -76,7 +76,7 @@
 		<dependency>
 			<groupId>org.imageterrier</groupId>
 			<artifactId>ImageTerrier</artifactId>
-			<version>3.0.1-SNAPSHOT</version>
+			<version>3.0.1</version>
 			<scope>compile</scope>
 		</dependency>
 		<dependency>

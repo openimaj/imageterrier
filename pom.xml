@@ -4,7 +4,7 @@
 	<groupId>org.imageterrier</groupId>
 	<artifactId>imageterrier-master</artifactId>
 	<packaging>pom</packaging>
-	<version>3.0.1-SNAPSHOT</version>
+	<version>3.0.1</version>
 	<name>The ImageTerrier Master Project</name>
 		<url>http://www.imageterrier.org</url>
 		<inceptionYear>2011</inceptionYear>
@@ -174,8 +174,8 @@
 		</site>
 	</distributionManagement>
 	<scm>
-		<connection>scm:svn:svn://svn.code.sf.net/p/imageterrier/code/trunk</connection>
-		<developerConnection>scm:svn:svn+ssh://svn.code.sf.net/p/imageterrier/code/trunk</developerConnection>
-		<url>https://sourceforge.net/p/imageterrier/code</url>
+		<connection>scm:svn:svn://svn.code.sf.net/p/imageterrier/code/tags/imageterrier-master-3.0.1</connection>
+		<developerConnection>scm:svn:svn+ssh://svn.code.sf.net/p/imageterrier/code/tags/imageterrier-master-3.0.1</developerConnection>
+		<url>https://sourceforge.net/p/imageterrier/code/tags/imageterrier-master-3.0.1</url>
 	</scm>
 </project>

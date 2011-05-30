@@ -3,13 +3,13 @@
 	<parent>
 		<artifactId>imageterrier-master</artifactId>
 		<groupId>org.imageterrier</groupId>
-		<version>3.0.1-SNAPSHOT</version>
+		<version>3.0.1</version>
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.imageterrier</groupId>
 	<artifactId>ImageTerrier</artifactId>
 	<packaging>jar</packaging>
-	<version>3.0.1-SNAPSHOT</version>
+	<version>3.0.1</version>
 	<name>ImageTerrier</name>
 	<url>http://www.imageterrier.org/ImageTerrier</url>
 	<inceptionYear>2011</inceptionYear>
