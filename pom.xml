@@ -9,7 +9,15 @@
 		<url>http://www.imageterrier.org</url>
 		<inceptionYear>2011</inceptionYear>
 		<description>
-  	
+			This is the master pom for ImageTerrier.
+			ImageTerrier is an open-source, scalable, high-performance search engine 
+			platform for content-based image retrieval applications. The ImageTerrier 
+			platform provides a comprehensive test-bed for experimenting with image 
+			retrieval techniques. The platform incorporates a state-of-the-art 
+			implementation of the single-pass indexing technique for constructing 
+			inverted indexes and is capable of producing highly compressed index 
+			data structures. ImageTerrier is written as an extension to the open-source 
+			Terrier test-bed platform for textual information retrieval research.  	
 		</description>
 		<licenses>
 			<license>
