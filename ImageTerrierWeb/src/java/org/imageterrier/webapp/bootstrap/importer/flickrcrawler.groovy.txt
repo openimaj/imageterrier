@@ -1,0 +1,26 @@
+import org.imageterrier.webapp.Metadata
+import org.imageterrier.webapp.MetadataImporter
+
+return {data, collection, index ->
+    def csvregex = ',(?=(?:[^\"]*\"[^\"]*\")*(?![^\"]*\"))'
+    
+    int count = 0
+	data.eachLine() {line ->
+		def parts = line.split(csvregex)
+
+		if (parts.length == 19) {
+	        def imageURL = parts[5].trim()
+	        def imageTerrierId = 0
+            
+            MetadataImporter.createMetadata(imageTerrierId, imageURL, line, collection)
+        }
+        
+        if ((count++) > 5000) {
+            println "flushing batch"
+            count = 0
+			collection.save()
+        }
+    }
+    
+	collection.save()
+}

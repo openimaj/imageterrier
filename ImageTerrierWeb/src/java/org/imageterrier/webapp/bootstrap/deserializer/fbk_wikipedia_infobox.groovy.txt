@@ -1,0 +1,11 @@
+return {data ->
+    def parts = data.split("\t")
+    
+    def md = [:]
+	
+	md.type = parts[0].trim()
+	md.entity = parts[1].trim()
+	md.path = parts[2].trim()
+	
+	return md
+}

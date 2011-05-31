@@ -1,0 +1,24 @@
+import org.imageterrier.webapp.Metadata
+import org.imageterrier.webapp.MetadataImporter
+
+return {data, collection, index ->
+    int count = 0
+	data.eachLine() {line ->
+		def parts = line.split("\t")
+
+		if (parts.length == 3) {
+	        def imageURL = "http://" + parts[2].trim()
+	        int imageTerrierId = index.loadIndex().index.metaIndex.getDocument("path", "/"+parts[2].trim())
+            
+            MetadataImporter.createMetadata(imageTerrierId, imageURL, line, collection)
+        }
+        
+        if ((count++) > 5000) {
+            println "flushing batch"
+            count = 0
+			collection.save()
+        }
+    }
+    
+	collection.save()
+}

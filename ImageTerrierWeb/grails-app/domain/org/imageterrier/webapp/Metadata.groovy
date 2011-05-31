@@ -1,7 +1,7 @@
 package org.imageterrier.webapp
 
 class Metadata {
-    String imageTerrierId
+    int imageTerrierId
     String imageURL
     String data
     ImageCollection collection
