@@ -135,7 +135,7 @@ public class QLFSequenceFilesCollection <F extends QuantisedLocalFeature<?>> imp
 			currentDocument = new QLFDocument<F>(loc, docid+"", null);
 			currentDocument.getAllProperties().put("sequenceFileURI", currentFile.toString());
 			currentDocument.getAllProperties().put("identifier", currentEntry.getKey().toString());
-			currentDocument.getAllProperties().put("path", new File(currentFile.getRawPath()).getName() + "?key=" + currentEntry.getKey().toString());
+			currentDocument.getAllProperties().put("path",currentEntry.getKey().toString());
 
 			docid++;
 			return true;
@@ -173,7 +173,6 @@ public class QLFSequenceFilesCollection <F extends QuantisedLocalFeature<?>> imp
 		try {
 			for (URI u : fl) {
 				TextBytesSequenceFileUtility sf = new TextBytesSequenceFileUtility(u, true);
-				
 				for (Text t : sf.listKeys()) {
 					if (t.getLength() > max) max = t.getLength() + (sf.getSequenceFilePath().getName() + "?key=").length();
 				}
@@ -185,6 +184,8 @@ public class QLFSequenceFilesCollection <F extends QuantisedLocalFeature<?>> imp
 		return max;
 	}
 	
+	
+	
 	@Override
 	public int getMaxPathChars() {
 		return Math.max(getMaxPathChars(fileList), getMaxPathChars(indexedList));
@@ -192,5 +193,9 @@ public class QLFSequenceFilesCollection <F extends QuantisedLocalFeature<?>> imp
 
 	public void setMaxIdChars(int maxIdChars) {
 		this.maxIdChars = maxIdChars;
+	}
+
+	public int getSequenceFilePathLength() {
+		return fileList.getFirst().toString().length();
 	}
 }
