@@ -53,7 +53,7 @@
                                   <label for="collection.deserializer"><g:message code="imageCollection.deserializer.label" default="Deserializer" /></label>
                               </td>
                               <td valign="top" class="value ${hasErrors(bean: imageCollectionInstance, field: 'deserializer', 'errors')}">
-                                  <g:select name="collection.deserializer.id" from="${org.imageterrier.webapp.MetadataDeserializer.list()}" optionKey="id" value="${imageCollectionInstance?.deserializer?.id}"  />
+                                  <g:select name="collection.deserializer.id" from="${org.imageterrier.webapp.MetadataDeserializer.list()}" optionKey="id" optionValue="name" value="${imageCollectionInstance?.deserializer?.id}"  />
                               </td>
                           </tr>
                       
@@ -70,6 +70,14 @@
 	                            </td>
 	                            <td valign="top" class="value ${hasErrors(bean: imageTerrierIndexInstance, field: 'name', 'errors')}">
 	                                <g:textField name="index.name" value="${imageTerrierIndexInstance?.name}" />
+	                            </td>
+	                        </tr>
+							<tr class="prop">
+	                            <td valign="top" class="name">
+	                                <label for="index.shortName"><g:message code="imageTerrierIndex.shortName.label" default="Short Name" /></label>
+	                            </td>
+	                            <td valign="top" class="value ${hasErrors(bean: imageTerrierIndexInstance, field: 'shortName', 'errors')}">
+	                                <g:textField name="index.shortName" value="${imageTerrierIndexInstance?.shortName}" />
 	                            </td>
 	                        </tr>
 
@@ -103,7 +111,7 @@
                                   <label for="importer"><g:message code="MetadataImporter.label" default="Importer" /></label>
                               </td>
                               <td valign="top" class="value">
-                                  <g:select name="importer.id" from="${org.imageterrier.webapp.MetadataImporter.list()}" optionKey="id" value="${metadataImporterInstance?.id}" />
+                                  <g:select name="importer.id" from="${org.imageterrier.webapp.MetadataImporter.list()}" optionKey="id" optionValue="name" value="${metadataImporterInstance?.id}" />
                               </td>
                           </tr>
 

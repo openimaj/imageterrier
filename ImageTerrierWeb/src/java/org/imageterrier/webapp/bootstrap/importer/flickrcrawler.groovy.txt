@@ -2,25 +2,39 @@ import org.imageterrier.webapp.Metadata
 import org.imageterrier.webapp.MetadataImporter
 
 return {data, collection, index ->
-    def csvregex = ',(?=(?:[^\"]*\"[^\"]*\")*(?![^\"]*\"))'
-    
-    int count = 0
+	def csvregex = ',(?=(?:[^\"]*\"[^\"]*\")*(?![^\"]*\"))'
+	int count = 0
+	
+	// first lets see what the path of an image in this index looks like
+	int exampleDoc = index.loadIndex().index.metaIndex.getDocument("docno", "0")
+	String examplePath = index.loadIndex().index.metaIndex.getItem("path",exampleDoc)
+	String basePath = examplePath.replaceAll("^(.*[?]key=).*\$","\$1")
 	data.eachLine() {line ->
 		def parts = line.split(csvregex)
 
 		if (parts.length == 19) {
-	        def imageURL = parts[5].trim()
-	        def imageTerrierId = 0
-            
-            MetadataImporter.createMetadata(imageTerrierId, imageURL, line, collection)
-        }
-        
-        if ((count++) > 5000) {
-            println "flushing batch"
-            count = 0
+			def imageURL = parts[5].trim()
+			// println imageURL
+			def extention = imageURL.split("[.]")
+			// println extention
+			def imageTerrierId = -1;
+			if(extention.length>0){
+				extention = extention[extention.length-1]
+				// println "Constructed path looks like: \n\t" + basePath + parts[2].trim()+"." + extention
+				int doc = index.loadIndex().index.metaIndex.getDocument("path", basePath + parts[2].trim() +"." + extention)
+				imageTerrierId = doc
+			}
+			
+			
+			MetadataImporter.createMetadata(imageTerrierId, imageURL, line, collection)
+		}
+		
+		if ((count++) > 5000) {
+			println "flushing batch"
+			count = 0
 			collection.save()
-        }
-    }
-    
+		}
+	}
+	
 	collection.save()
 }

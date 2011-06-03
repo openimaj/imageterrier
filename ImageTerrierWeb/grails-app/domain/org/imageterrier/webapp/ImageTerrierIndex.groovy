@@ -5,9 +5,11 @@ import org.imageterrier.basictools.BasicSearcherOptions
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
+
 class ImageTerrierIndex {
     File indexPath
     String name
+	String shortName
     String description
 
     static belongsTo = [imageCollections : ImageCollection]
@@ -42,9 +44,9 @@ class ImageTerrierIndex {
 
 	//reload the options object
 	def reloadOptions(String setting, int limit=10) {
-		def path = indexLocation.getAbsolutePath()
+		def path = indexPath.getAbsolutePath()
 		def searcher = loadIndex()
-		String[] args = (setting.arguments + " -i " + path + " -l " + limit).trim().split("\\s+")
+		String[] args = (setting + " -i " + path + " -l " + limit).trim().split("\\s+")
 		
 		BasicSearcherOptions options = new BasicSearcherOptions();
 		CmdLineParser parser = new CmdLineParser(options);
@@ -59,21 +61,26 @@ class ImageTerrierIndex {
 	}
 	
 	//perform a search using the index
-	def search(File imageFile, QueryOptions options, int limit=10) {
-		def opts = reloadOptions(options.options, limit)
+	def search(File imageFile, String options, int limit=10) {
+		def opts = reloadOptions(options, limit)
 		def bs = loadIndex()
 		
-		def resultsSet = bs.search(imageFile, null, options)
+		def resultsSet = bs.search(imageFile, null, opts)
 		limit = Math.min(limit, resultsSet.getDocids().size())
 		
 		def res = []
-		println "Preparing results"
+		log.info("Preparing results")
 		for (int i=0; i<limit; i++) {
 			int id = resultsSet.getDocids()[i]
+/*			24022*/
+			log.info("Found doc: " + id + " with score: " + resultsSet.getScores()[i])
+			def metaResults = Metadata.findByImageTerrierId(id)
+			if(metaResults!=null){
+				metaResults = metaResults.collection.deserializer.deserialize(metaResults.data)
+				metaResults["score"] = resultsSet.getScores()[i]
+				res << metaResults
+			}
 			
-			def metaResults = ImageMetadata.findByImageTerrierId(id)
-			metaResults[score] = resultsSet.getScores()[i]
-			res << metaResults
 		}
 		return res
 	}
