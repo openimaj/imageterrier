@@ -164,7 +164,7 @@ public class QLFSequenceFilesCollection <F extends QuantisedLocalFeature<?>> imp
 			throw new RuntimeException(e);
 		}
 		
-		return ("" + count).length();
+		return (int) Math.max(1, Math.ceil((("" + count).length()) / 3.0));
 	}
 	
 	protected int getMaxPathChars(List<URI> fl) {
@@ -174,14 +174,14 @@ public class QLFSequenceFilesCollection <F extends QuantisedLocalFeature<?>> imp
 			for (URI u : fl) {
 				TextBytesSequenceFileUtility sf = new TextBytesSequenceFileUtility(u, true);
 				for (Text t : sf.listKeys()) {
-					if (t.getLength() > max) max = t.getLength() + (sf.getSequenceFilePath().getName() + "?key=").length();
+					if (t.getLength() > max) max = t.getLength();
 				}
 			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 		
-		return max;
+		return (int) Math.max(1, Math.ceil(max/3.0));
 	}
 	
 	
