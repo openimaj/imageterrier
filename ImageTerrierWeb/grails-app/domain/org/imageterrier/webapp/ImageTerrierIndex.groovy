@@ -12,7 +12,7 @@ class ImageTerrierIndex {
 	String shortName
     String description
 
-    static belongsTo = [imageCollections : ImageCollection]
+    static belongsTo = [imageCollection : ImageCollection]
     
     static constraints = {
     }
@@ -69,19 +69,34 @@ class ImageTerrierIndex {
 		limit = Math.min(limit, resultsSet.getDocids().size())
 		
 		def res = []
-		log.info("Preparing results")
-		for (int i=0; i<limit; i++) {
-			int id = resultsSet.getDocids()[i]
-/*			24022*/
-			log.info("Found doc: " + id + " with score: " + resultsSet.getScores()[i])
-			def metaResults = Metadata.findByImageTerrierId(id)
-			if(metaResults!=null){
-				metaResults = metaResults.collection.deserializer.deserialize(metaResults.data)
-				metaResults["score"] = resultsSet.getScores()[i]
-				res << metaResults
-			}
-			
+		long time = System.currentTimeMillis();
+		log.info("Preparing results id array")
+		def idArr = resultsSet.getDocids()[0..limit-1]
+		def scoreArr = resultsSet.getScores();
+		def scoreMap = [:]
+		idArr.eachWithIndex { num,index ->
+		    scoreMap[num] = scoreArr[index]
 		}
+		
+		log.info("Done, took: " + (System.currentTimeMillis() - time + "ms"))
+		time = System.currentTimeMillis();
+		log.info("Grabbing all metadata")
+		def metadataC = Metadata.createCriteria()
+		def metaResults = metadataC.list {
+			eq("imageCollection",imageCollection)
+			'in'("imageTerrierId",idArr)
+		}
+		log.info("Done, took: " + (System.currentTimeMillis() - time + "ms"))
+		time = System.currentTimeMillis();
+		log.info("Deserializing data")
+		metaResults.each { metaResult ->
+			def score = scoreMap[metaResult.imageTerrierId]
+			metaResult = imageCollection.deserializer.deserialize(metaResult.data)
+			metaResult["score"] = score
+			res << metaResult
+		}
+		log.info("Done, took: " + (System.currentTimeMillis() - time + "ms"))
+		time = System.currentTimeMillis();
 		return res
 	}
 }

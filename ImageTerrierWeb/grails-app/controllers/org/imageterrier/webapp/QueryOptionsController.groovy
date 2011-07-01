@@ -1,5 +1,5 @@
 package org.imageterrier.webapp
-
+import grails.converters.*
 class QueryOptionsController {
 
     static allowedMethods = [save: "POST", update: "POST", delete: "POST"]
@@ -8,10 +8,15 @@ class QueryOptionsController {
         redirect(action: "list", params: params)
     }
 
-    def list = {
-        params.max = Math.min(params.max ? params.int('max') : 10, 100)
-        [queryOptionsInstanceList: QueryOptions.list(params), queryOptionsInstanceTotal: QueryOptions.count()]
-    }
+	def list = {
+		params.max = Math.min(params.max ? params.int('max') : 10, 100)
+		def ret = [queryOptionsInstanceList: QueryOptions.list(params), queryOptionsInstanceTotal: QueryOptions.count()]
+		withFormat {
+			html { return ret }
+			xml { render ret as XML }
+			json { render ret as JSON }
+		}
+	}
 
     def create = {
         def queryOptionsInstance = new QueryOptions()

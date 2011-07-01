@@ -1,0 +1,74 @@
+static def distance(p1, p2) {
+	double lat1 = p1[0] * Math.PI / 180.0
+	double lat2 = p2[0] * Math.PI / 180.0
+	double lon1 = p1[1] * Math.PI / 180.0
+	double lon2 = p2[1] * Math.PI / 180.0
+	double R = 6371000; // m
+	return Math.acos(Math.sin(lat1)*Math.sin(lat2) + 
+						Math.cos(lat1)*Math.cos(lat2) *
+						Math.cos(lon2-lon1)) * R;
+}
+
+static def weightedMeanCenter(results) {
+	def latMean = 0;
+	def lonMean = 0;
+	def total = 0;
+	def order = 0;
+	results.each({
+		if(it.latitude == null || it.longitude == null) 
+		{
+			order+=1;
+			return;
+		}	
+		def weight = (results.size() - order) / results.size()
+		latMean += it.latitude * weight
+		lonMean += it.longitude * weight
+		if(it.latitude > 0 && it.longitude > 0){
+			total+=weight
+		}
+		order += 1
+	})
+	return [
+		latitude:latMean/total,
+		longitude:lonMean/total
+	]
+}
+
+def boundedBestWeightedMeanCenter(resultsHolder,threshold) {
+	def mean = null;
+	if(resultsHolder.results == null)
+		return null
+	def results = resultsHolder.results.clone()
+	while(results.size()>0){
+		mean = weightedMeanCenter(results)
+		println "Current means are ${mean}"
+		def distances = results.collect({
+			if(it.latitude != null && it.longitude != null)
+				return distance([it.latitude,it.longitude],[mean.latitude,mean.longitude])
+			return null
+		})
+		distances.removeAll({it == null})
+		if(distances.size() == 0){
+			break;
+		}
+		println "Current distances are ${distances}"
+		def biggestIndex = distances.indexOf(distances.max())
+		println "Biggest found at index ${biggestIndex}"
+		if(distances[biggestIndex] > threshold){
+			println "Still too large, loop and continue"
+			results = results.minus(results[biggestIndex])
+		}
+		else{
+			break
+		}
+	}
+	
+	return mean
+}
+return { results, settings ->
+	threshold = settings.get("threshold",100)
+	def mean = boundedBestWeightedMeanCenter(results,threshold)
+	if(mean!=null){
+		results['geolocation'] = mean;
+	}
+}

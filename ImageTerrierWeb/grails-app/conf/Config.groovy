@@ -70,7 +70,9 @@ log4j = {
     //appenders {
     //    console name:'stdout', layout:pattern(conversionPattern: '%c{2} %m%n')
     //}
-
+//	info "grails.app"
+//	info 'org.codehaus.groovy.grails.web.servlet'
+	
     error  'org.codehaus.groovy.grails.web.servlet',  //  controllers
            'org.codehaus.groovy.grails.web.pages', //  GSP
            'org.codehaus.groovy.grails.web.sitemesh', //  layouts
@@ -85,3 +87,14 @@ log4j = {
 
     warn   'org.mortbay.log'
 }
+
+
+//log4j.logger.org.springframework.security='off,stdout'
+// Added by the Spring Security Core plugin:
+grails.plugins.springsecurity.userLookup.userDomainClassName = 'org.imageterrier.webapp.security.User'
+grails.plugins.springsecurity.userLookup.authorityJoinClassName = 'org.imageterrier.webapp.security.UserRole'
+grails.plugins.springsecurity.authority.className = 'org.imageterrier.webapp.security.Role'
+grails.plugins.springsecurity.successHandler.defaultTargetUrl = "/"
+grails.plugins.springsecurity.roleHierarchy = '''
+   ROLE_ADMIN > ROLE_INDEXER
+'''

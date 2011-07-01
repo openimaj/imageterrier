@@ -1,6 +1,7 @@
 package org.imageterrier.webapp
 
 import org.imageterrier.webapp.ImageTerrierIndex
+import org.imageterrier.webapp.ResultsProcessor
 import grails.converters.*
 import org.springframework.web.multipart.MultipartHttpServletRequest 
 class ImageTerrierIndexController {
@@ -14,24 +15,35 @@ class ImageTerrierIndexController {
 	def search = {
 /*		JSON.setPrettyPrint(true)*/
 		log.info("starting search")
-		log.info("Results processors found: " + params.resultsProcessor)
+		
+		// apply the results processor
+		log.info("ResultsProcessor loading: '"+params.resultsProcessor+"'")
+		def resultsProcessor = ResultsProcessor.loadProcessor(params.resultsProcessor)
+		log.info("ResultsProcessor found was: '"+resultsProcessor+"'")
+		
 		def terrierIndexInstance = null;
 		try{
 			log.info("trying to load by id: " + params.id)
 			terrierIndexInstance = ImageTerrierIndex.get(Integer.parseInt(params.id))
 		}
 		catch(Exception e){
-			log.info("Could not load by id")
+			log.info("Could not load by number id")
 		}
 		if(terrierIndexInstance == null){
 			try{
 				terrierIndexInstance = ImageTerrierIndex.findByShortName(params.id)
 			}
 			catch(Exception e){
-				log.info("Could not load by id")
+				log.info("Could not load by name id")
 			}
 		}
 		if(terrierIndexInstance == null){
+			def allData = ["error":["message":"index does not exist by id or name: " + params.id]]
+			withFormat {
+				html { return [ data : allData ] }
+				xml { render allData as XML }
+				json { render allData as JSON }
+			}
 			return
 		}
 		log.info("Index found")
@@ -55,6 +67,12 @@ class ImageTerrierIndexController {
 		}
 		else{
 			log.error("Query was not correctly provided");
+			def allData = ["error":["message":"No ImageURL or ImageFile found!"]]
+			withFormat {
+				html { return [ data : allData ] }
+				xml { render allData as XML }
+				json { render allData as JSON }
+			}
 			return;
 		}
 		
@@ -85,6 +103,7 @@ class ImageTerrierIndexController {
 			"results":results,
 		]
 		
+		resultsProcessor.process(allData)
 		withFormat {
 			html { return [ data : allData ] }
 			xml { render allData as XML }

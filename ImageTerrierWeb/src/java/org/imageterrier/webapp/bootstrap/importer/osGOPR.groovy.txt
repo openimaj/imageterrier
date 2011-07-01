@@ -1,0 +1,25 @@
+import org.imageterrier.webapp.Metadata
+import org.imageterrier.webapp.MetadataImporter
+
+return {data, collection, index ->
+    int count = 0
+	data.eachLine() {line ->
+		def parts = line.split(" ")
+
+		if (parts.length == 2) {
+			def imageName = parts[0].trim()
+			def imagePath = parts[1].trim()
+	        int imageTerrierId = index.loadIndex().index.metaIndex.getDocument("path", imageName)
+            
+            MetadataImporter.createMetadata(imageTerrierId, imagePath, line, collection)
+        }
+        
+        if ((count++) > 5000) {
+            println "flushing batch"
+            count = 0
+			collection.save()
+        }
+    }
+    
+	collection.save()
+}

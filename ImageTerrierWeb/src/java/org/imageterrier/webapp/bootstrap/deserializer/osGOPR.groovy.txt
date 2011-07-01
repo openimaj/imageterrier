@@ -1,0 +1,10 @@
+return {data ->
+	def parts = data.split(" ")
+	
+	def md = [:]
+	
+	md.name = parts[0].trim()
+	md.path = parts[1].trim()
+	
+	return md
+}

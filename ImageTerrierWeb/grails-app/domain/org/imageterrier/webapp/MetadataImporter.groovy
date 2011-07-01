@@ -24,7 +24,7 @@ class MetadataImporter {
 	    md.imageTerrierId = imageTerrierId
         md.imageURL = imageURL
         md.data = data
-        md.collection = collection
+/*        md.imageCollection = collection*/
         
         collection.addToMetadata(md)
         
