@@ -4,10 +4,23 @@ import org.imageterrier.webapp.ImageTerrierIndex
 import org.imageterrier.webapp.ResultsProcessor
 import grails.converters.*
 import org.springframework.web.multipart.MultipartHttpServletRequest 
+import grails.plugins.springsecurity.Secured
+import static org.springframework.security.acls.domain.BasePermission.ADMINISTRATION
+import org.springframework.security.access.prepost.PostFilter
+import org.springframework.security.access.prepost.PreAuthorize
+import org.springframework.security.acls.domain.BasePermission
+import org.springframework.security.acls.model.Permission
+import org.springframework.transaction.annotation.Transactional
 class ImageTerrierIndexController {
 
 	static allowedMethods = [save: "POST", update: "POST", delete: "POST"]
-
+	def imageTerrierIndexService
+	def aclUtilService
+	def springSecurityService
+	def sessionFactory
+	def aclPermissionFactory
+	def aclService
+	
 	def index = {
 		redirect(action: "list", params: params)
 	}
@@ -115,22 +128,9 @@ class ImageTerrierIndexController {
 		params.max = Math.min(params.max ? params.int('max') : 10, 100)
 		[imageTerrierIndexInstanceList: ImageTerrierIndex.list(params), imageTerrierIndexInstanceTotal: ImageTerrierIndex.count()]
 	}
-
+	
 	def create = {
-		def imageTerrierIndexInstance = new ImageTerrierIndex()
-		imageTerrierIndexInstance.properties = params
-		return [imageTerrierIndexInstance: imageTerrierIndexInstance]
-	}
-
-	def save = {
-		def imageTerrierIndexInstance = new ImageTerrierIndex(params)
-		if (imageTerrierIndexInstance.save(flush: true)) {
-			flash.message = "${message(code: 'default.created.message', args: [message(code: 'imageTerrierIndex.label', default: 'ImageTerrierIndex'), imageTerrierIndexInstance.id])}"
-			redirect(action: "show", id: imageTerrierIndexInstance.id)
-		}
-		else {
-			render(view: "create", model: [imageTerrierIndexInstance: imageTerrierIndexInstance])
-		}
+		redirect(controller: "import", action: "index")
 	}
 
 	def show = {
@@ -143,47 +143,10 @@ class ImageTerrierIndexController {
 			[imageTerrierIndexInstance: imageTerrierIndexInstance]
 		}
 	}
-
-	def edit = {
-		def imageTerrierIndexInstance = ImageTerrierIndex.get(params.id)
-		if (!imageTerrierIndexInstance) {
-			flash.message = "${message(code: 'default.not.found.message', args: [message(code: 'imageTerrierIndex.label', default: 'ImageTerrierIndex'), params.id])}"
-			redirect(action: "list")
-		}
-		else {
-			return [imageTerrierIndexInstance: imageTerrierIndexInstance]
-		}
-	}
-
-	def update = {
-		def imageTerrierIndexInstance = ImageTerrierIndex.get(params.id)
-		if (imageTerrierIndexInstance) {
-			if (params.version) {
-				def version = params.version.toLong()
-				if (imageTerrierIndexInstance.version > version) {
-					
-					imageTerrierIndexInstance.errors.rejectValue("version", "default.optimistic.locking.failure", [message(code: 'imageTerrierIndex.label', default: 'ImageTerrierIndex')] as Object[], "Another user has updated this ImageTerrierIndex while you were editing")
-					render(view: "edit", model: [imageTerrierIndexInstance: imageTerrierIndexInstance])
-					return
-				}
-			}
-			imageTerrierIndexInstance.properties = params
-			if (!imageTerrierIndexInstance.hasErrors() && imageTerrierIndexInstance.save(flush: true)) {
-				flash.message = "${message(code: 'default.updated.message', args: [message(code: 'imageTerrierIndex.label', default: 'ImageTerrierIndex'), imageTerrierIndexInstance.id])}"
-				redirect(action: "show", id: imageTerrierIndexInstance.id)
-			}
-			else {
-				render(view: "edit", model: [imageTerrierIndexInstance: imageTerrierIndexInstance])
-			}
-		}
-		else {
-			flash.message = "${message(code: 'default.not.found.message', args: [message(code: 'imageTerrierIndex.label', default: 'ImageTerrierIndex'), params.id])}"
-			redirect(action: "list")
-		}
-	}
-
+	
+	@Secured(['ROLE_ADMIN','ROLE_INDEXER'])
 	def delete = {
-		def imageTerrierIndexInstance = ImageTerrierIndex.get(params.id)
+		def imageTerrierIndexInstance = imageTerrierIndexService.get(params.long("id"))
 		if (imageTerrierIndexInstance) {
 			try {
 				imageTerrierIndexInstance.delete(flush: true)

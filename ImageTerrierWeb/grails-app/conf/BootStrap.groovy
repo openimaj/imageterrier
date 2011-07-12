@@ -23,6 +23,19 @@ class BootStrap {
 		aclUtilService.addPermission object, "admin", ADMINISTRATION
 	}
 	
+/*	def init = {
+		MetadataDeserializer md = new MetadataDeserializer(name:"a",description:"b",groovyClosure:"return {}");
+		md.save()
+		ImageCollection ic = new ImageCollection(name:"a",description:"b",deserializer:md)
+		ImageTerrierIndex index = new ImageTerrierIndex(
+			name: "a",
+			shortName: "b",
+			description: "c",
+			indexPath: "d",
+			imageCollection:ic)
+		index.save()
+	}*/
+	
 	def init = { servletContext ->
 		loginAsAdmin()
 		

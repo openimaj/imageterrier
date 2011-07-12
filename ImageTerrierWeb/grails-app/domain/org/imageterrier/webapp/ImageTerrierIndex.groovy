@@ -7,18 +7,17 @@ import org.kohsuke.args4j.CmdLineParser;
 
 
 class ImageTerrierIndex {
-    File indexPath
-    String name
+	File indexPath
+	String name
 	String shortName
-    String description
-
-    static belongsTo = [imageCollection : ImageCollection]
-    
-    static constraints = {
-    }
-    
-    //static map of loaded indexes
-    static def basicSearchers = [:]
+	String description
+	ImageCollection imageCollection
+	
+	static constraints = {
+	}
+	
+	//static map of loaded indexes
+	static def basicSearchers = [:]
 	
 	//load an index
 	def loadIndex() {
@@ -29,11 +28,11 @@ class ImageTerrierIndex {
 			BasicSearcherOptions options = new BasicSearcherOptions();
 			CmdLineParser parser = new CmdLineParser(options);
 			
-		    try {
-			    parser.parseArgument(args);
+			try {
+				parser.parseArgument(args);
 			} catch(CmdLineException e) {
-			    e.printStackTrace()
-			    return null
+				e.printStackTrace()
+				return null
 			}
 			
 			basicSearchers[path] = new BasicSearcher(options)
@@ -53,7 +52,7 @@ class ImageTerrierIndex {
 		try {
 			parser.parseArgument(args);
 		} catch(CmdLineException e) {
-		    e.printStackTrace()
+			e.printStackTrace()
 			return null
 		}
 		
@@ -75,7 +74,7 @@ class ImageTerrierIndex {
 		def scoreArr = resultsSet.getScores();
 		def scoreMap = [:]
 		idArr.eachWithIndex { num,index ->
-		    scoreMap[num] = scoreArr[index]
+			scoreMap[num] = scoreArr[index]
 		}
 		
 		log.info("Done, took: " + (System.currentTimeMillis() - time + "ms"))

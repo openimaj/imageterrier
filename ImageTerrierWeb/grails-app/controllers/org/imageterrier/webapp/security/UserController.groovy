@@ -75,7 +75,6 @@ class UserController {
 			redirect(action: "list")
 		}
 		else {
-			userInstance.password = ""
 			return [userInstance: userInstance]
 		}
 	}
@@ -115,6 +114,7 @@ class UserController {
 	}
 	
 	private boolean assignPasswords(userInstance,params){
+		println "Attempting to assign passwords"
 		if(params.new_password!=null && params.new_password!="")
 		{
 			if(params.new_password==params.renew_password){

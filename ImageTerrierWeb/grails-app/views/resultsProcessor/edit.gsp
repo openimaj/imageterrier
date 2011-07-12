@@ -7,7 +7,33 @@
 		<meta name="layout" content="main" />
 		<g:set var="entityName" value="${message(code: 'resultsProcessor.label', default: 'ResultsProcessor')}" />
 		<title><g:message code="default.edit.label" args="[entityName]" /></title>
-		<syntax:resources name="code" languages="['Java', 'groovy']" />
+		<script type="text/javascript" src="/ImageTerrierWeb/plugins/console-1.0.1/js/jquery-1.4.4.min.js"></script>
+
+			<script type="text/javascript" src="/ImageTerrierWeb/plugins/console-1.0.1/js/jquery.hotkeys.js"></script>
+
+			<script type="text/javascript" src="/ImageTerrierWeb/plugins/console-1.0.1/js/jquery.scrollTo-min.js"></script>
+
+			<script type="text/javascript" src="/ImageTerrierWeb/plugins/console-1.0.1/js/splitter.js"></script>
+
+			<script type="text/javascript" src="/ImageTerrierWeb/plugins/console-1.0.1/js/codemirror/js/codemirror.js"></script>
+
+		<script type="text/javascript" charset="utf-8">
+			$(document).ready(function () {
+				var pluginContext = "/ImageTerrierWeb/plugins/console-1.0.1/"
+				var editor = CodeMirror.fromTextArea('code', {
+					height: '250px', // 100% for splitter
+					content: $('#code').val(),
+					parserfile: ['../contrib/groovy/parsegroovy.js', '../contrib/groovy/tokenizegroovy.js'],
+					stylesheet: pluginContext + '/js/codemirror/contrib/groovy/groovycolors.css',
+					path: pluginContext + '/js/codemirror/js/',
+					autoMatchParens: true,
+					tabMode: 'shift',
+					textWrapping: false,
+					indentUnit: 3
+				});
+				
+			})
+		</script>
 	</head>
 	<body>
 		<div class="nav">
@@ -46,7 +72,7 @@
 								  <label for="groovyClosure"><g:message code="resultsProcessor.groovyClosure.label" default="Groovy Closure" /></label>
 								</td>
 								<td valign="top" class="value ${hasErrors(bean: resultsProcessorInstance, field: 'groovyClosure', 'errors')}">
-									<g:textArea name="groovyClosure" value="${resultsProcessorInstance?.groovyClosure}" />
+									<textarea id="code" name="groovyClosure"  width="525" height="200">${resultsProcessorInstance?.groovyClosure}</textarea>
 								</td>
 							</tr>
 						

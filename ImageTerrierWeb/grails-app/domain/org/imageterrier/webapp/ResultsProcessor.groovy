@@ -7,12 +7,21 @@ class ResultsProcessor {
 	String shortName = ""
 	
 	transient def compiledClosure
+	transient def compilationError
 	static constraints = {
 	}
 
 	def afterLoad = {
 		GroovyShell gs = new GroovyShell(this.getClass().getClassLoader())
-		compiledClosure = gs.evaluate(groovyClosure)
+		try{
+			compiledClosure = gs.evaluate(groovyClosure)
+			compilationError = null
+		}
+		catch(Exception e){
+			compiledClosure = gs.evaluate("return {a,b -> a}")
+			compilationError = e;
+		}
+		
 	}
 	
 	def process(results){

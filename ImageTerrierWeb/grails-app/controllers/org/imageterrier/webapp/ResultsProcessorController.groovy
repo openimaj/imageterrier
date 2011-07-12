@@ -1,13 +1,17 @@
 package org.imageterrier.webapp
 import grails.converters.*
 import grails.plugins.springsecurity.Secured
+import static org.springframework.security.acls.domain.BasePermission.ADMINISTRATION
 
 
 class ResultsProcessorController {
 
-	static allowedMethods = [save: "POST", update: "POST", delete: "POST"]
+	static allowedMethods = [save: "POST", update: "POST", delete: "POST", edit:"POST"]
 	
 	def resultsProcessorService
+	def aclUtilService
+	def springSecurityService
+	def sessionFactory
 	def index = {
 		redirect(action: "list", params: params)
 	}
@@ -32,6 +36,10 @@ class ResultsProcessorController {
 	def save = {
 		def resultsProcessorInstance = new ResultsProcessor(params)
 		if (resultsProcessorInstance.save(flush: true)) {
+			
+			aclUtilService.addPermission resultsProcessorInstance, springSecurityService.principal.username, ADMINISTRATION
+			sessionFactory.currentSession.flush()
+			
 			flash.message = "${message(code: 'default.created.message', args: [message(code: 'resultsProcessor.label', default: 'ResultsProcessor'), resultsProcessorInstance.id])}"
 			redirect(action: "show", id: resultsProcessorInstance.id)
 		}
@@ -51,7 +59,8 @@ class ResultsProcessorController {
 			[resultsProcessorInstance: resultsProcessorInstance]
 		}
 	}
-
+	
+	@Secured(['ROLE_ADMIN','ROLE_INDEXER'])
 	def edit = {
 		def resultsProcessorInstance = resultsProcessorService.get(params.long("id"))
 		if (!resultsProcessorInstance) {
@@ -62,7 +71,8 @@ class ResultsProcessorController {
 			return [resultsProcessorInstance: resultsProcessorInstance]
 		}
 	}
-
+	
+	@Secured(['ROLE_ADMIN','ROLE_INDEXER'])
 	def update = {
 		def resultsProcessorInstance = resultsProcessorService.get(params.long("id"))
 		if (resultsProcessorInstance) {
@@ -89,7 +99,8 @@ class ResultsProcessorController {
 			redirect(action: "list")
 		}
 	}
-
+	
+	@Secured(['ROLE_ADMIN','ROLE_INDEXER'])
 	def delete = {
 		def resultsProcessorInstance = resultsProcessorService.get(params.long("id"))
 		if (resultsProcessorInstance) {

@@ -19,7 +19,7 @@ class UserService {
 
 	}
 	
-	@PreAuthorize("hasPermission(#id, 'org.imageterrier.webapp.security.User', admin)")
+	@PreAuthorize("hasPermission(#id, 'org.imageterrier.webapp.security.User', admin) or hasRole('ROLE_ADMIN')")
 	User get(long id) {
 		User.get id
 	}

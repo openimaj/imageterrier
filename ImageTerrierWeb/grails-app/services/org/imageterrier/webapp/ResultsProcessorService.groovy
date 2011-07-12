@@ -18,7 +18,7 @@ class ResultsProcessorService {
 
 	}
 	
-	@PreAuthorize("hasPermission(#id, 'org.imageterrier.webapp.ResultsProcessor', admin)")
+	@PreAuthorize("hasPermission(#id, 'org.imageterrier.webapp.ResultsProcessor', admin) or hasRole('ROLE_ADMIN')")
 	ResultsProcessor get(long id) {
 		ResultsProcessor.get id
 	}

@@ -11,7 +11,7 @@
 		<div id="spinner" class="spinner" style="display:none;">
 			<img src="${resource(dir:'images',file:'spinner.gif')}" alt="${message(code:'spinner.alt',default:'Loading...')}" />
 		</div>
-		<div id="imageterrierLogo"><a href="http://imageterrier.org"><img src="${resource(dir:'images',file:'imageterrier.png')}" alt="ImageTerrier" border="0" /></a></div>
+		<div id="imageterrierLogo"><g:link view="index"><img src="${resource(dir:'images',file:'imageterrier.png')}" alt="ImageTerrier" border="0" /></g:link></div>
 		<div id="authbar">
 			<sec:ifLoggedIn>
 				Welcome, <sec:username/>. <g:link controller="logout"> Logout </g:link>

@@ -96,6 +96,32 @@
 					</li>
 				</ul>
 				</sec:ifAllGranted>
+				<sec:ifAllGranted roles="ROLE_ADMIN">
+				<h2>As an Admin you can access:</h2>
+				<ul>
+					<li class="controller">
+						<h3>User Preferences</h3>
+						<ul>
+							<li class="action"><g:link controller="user" action="create" >Add</g:link></li>
+							<li class="action"><g:link controller="user" action="list" >List</g:link></li>
+						</ul>
+					</li>
+					<li class="controller">
+						<h3>Roles</h3>
+						<ul>
+							<li class="action"><g:link controller="role" action="list" >List</g:link></li>
+							<li class="action"><g:link controller="role" action="create" >Add</g:link></li>
+						</ul>
+					</li>
+					<li class="controller">
+						<h3>User->Roles</h3>
+						<ul>
+							<li class="action"><g:link controller="userRole" action="list" >List</g:link></li>
+							<li class="action"><g:link controller="userRole" action="create" >Add</g:link></li>
+						</ul>
+					</li>
+				</ul>
+				</sec:ifAllGranted>
 			</div>
 		</sec:ifLoggedIn>
 		</div>
