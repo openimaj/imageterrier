@@ -29,7 +29,6 @@
 package org.imageterrier.locfile;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
@@ -80,6 +79,18 @@ public class QLFSequenceFilesCollection <F extends QuantisedLocalFeature<?>> imp
 		fileList.addAll(uris);
 	}
 	
+	public QLFSequenceFilesCollection(List<String> inputPathsOrURIs,Class<F> featureClass) throws IOException {
+		this.featureClass = featureClass;
+		
+		ArrayList<URI> uris = new ArrayList<URI>();
+		for(String uriOrPath : inputPathsOrURIs){
+			Path[] paths = SequenceFileUtility.getFilePaths(uriOrPath,"part");
+			for(Path p : paths) uris.add(p.toUri());
+		}
+		
+		fileList.addAll(uris);
+	}
+
 	@Override
 	public void close() {
 		return;
@@ -164,7 +175,7 @@ public class QLFSequenceFilesCollection <F extends QuantisedLocalFeature<?>> imp
 			throw new RuntimeException(e);
 		}
 		
-		return (int) Math.max(1, Math.ceil((("" + count).length()) / 3.0));
+		return (int) Math.max(1, Math.ceil((("" + count).length()) ));
 	}
 	
 	protected int getMaxPathChars(List<URI> fl) {
@@ -181,7 +192,7 @@ public class QLFSequenceFilesCollection <F extends QuantisedLocalFeature<?>> imp
 			throw new RuntimeException(e);
 		}
 		
-		return (int) Math.max(1, Math.ceil(max/3.0));
+		return (int) Math.max(1, Math.ceil(max));
 	}
 	
 	
