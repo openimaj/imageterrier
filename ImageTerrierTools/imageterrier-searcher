@@ -5,5 +5,5 @@
 # @author Jonathon Hare
 
 bin=`dirname "$0"`
-echo $bin
+
 java -Xmx8G -cp "`ls $bin/target/ImageTerrierTools-*-SNAPSHOT-jar-with-dependencies.jar`" org.imageterrier.basictools.BasicSearcher ${1+"$@"}

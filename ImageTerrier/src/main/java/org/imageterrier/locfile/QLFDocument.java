@@ -267,10 +267,8 @@ public class QLFDocument<F extends QuantisedLocalFeature<?>> implements Document
 	CoordinateKDTree<Pt> tree;
 	
 	class Pt extends Point2dImpl {
-		/**
-		 * 
-		 */
-		private static final long serialVersionUID = 2587165830032484705L;
+		private static final long serialVersionUID = 1L;
+		
 		F f;
 		public Pt(float x, float y, F f) {
 			super(x, y);
