@@ -43,6 +43,7 @@ import org.terrier.indexing.Document;
 import org.terrier.structures.Index;
 import org.terrier.structures.TermPayloadCoordinator;
 import org.terrier.utility.ArrayUtils;
+import org.terrier.utility.ExtendedArrayUtils;
 
 /**
  * A Coordinator for storing term position information extracted through
@@ -81,12 +82,12 @@ public class PositionTermPayloadCoordinator extends TermPayloadCoordinator<int[]
 			throw new RuntimeException("Position bits length is not equal to the number of ordinates");
 		
 		PositionSpecMode mode = PositionSpecMode.valueOf(index.getIndexProperty("positions.mode", "NONE"));
-		double[] lowerBounds = ArrayUtils.parseCommaDelimitedDoubles(index.getIndexProperty("positions.lowerBounds", ""));
-		double[] upperBounds = ArrayUtils.parseCommaDelimitedDoubles(index.getIndexProperty("positions.upperBounds", ""));
+		double[] lowerBounds = ExtendedArrayUtils.parseCommaDelimitedDoubles(index.getIndexProperty("positions.lowerBounds", ""));
+		double[] upperBounds = ExtendedArrayUtils.parseCommaDelimitedDoubles(index.getIndexProperty("positions.upperBounds", ""));
 		
 		this.positionSpec = new PositionSpec(mode, positionBits, lowerBounds, upperBounds);
 	}
-			
+				
 	@Override
 	public void saveConfiguration(Index currentIndex) {
 		super.saveConfiguration(currentIndex);

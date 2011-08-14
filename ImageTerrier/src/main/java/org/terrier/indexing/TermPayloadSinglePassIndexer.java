@@ -71,6 +71,11 @@ public class TermPayloadSinglePassIndexer<PAYLOAD> extends ExtensibleSinglePassI
 				numOfTokensInDocument++;
 			}
 		}
+
+		@Override
+		public boolean reset() {
+			return true;
+		}
 	}
 
 	@Override

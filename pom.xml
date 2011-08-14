@@ -4,7 +4,7 @@
 	<groupId>org.imageterrier</groupId>
 	<artifactId>imageterrier-master</artifactId>
 	<packaging>pom</packaging>
-	<version>3.0.2-SNAPSHOT</version>
+	<version>3.5-SNAPSHOT</version>
 	<name>The ImageTerrier Master Project</name>
 		<url>http://www.imageterrier.org</url>
 		<inceptionYear>2011</inceptionYear>

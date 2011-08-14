@@ -174,11 +174,6 @@ public class QLFFilesCollection<F extends QuantisedLocalFeature<?>> implements Q
 	}
 
 	@Override
-	public String getDocid() {
-		return docid+"";
-	}
-
-	@Override
 	public Document getDocument() {
 		return currentDocument;
 	}

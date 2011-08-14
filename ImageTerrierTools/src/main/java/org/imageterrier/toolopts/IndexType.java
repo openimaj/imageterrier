@@ -39,6 +39,7 @@ import org.kohsuke.args4j.CmdLineOptionsProvider;
 import org.kohsuke.args4j.Option;
 import org.terrier.indexing.ExtensibleSinglePassIndexer;
 import org.terrier.utility.ArrayUtils;
+import org.terrier.utility.ExtendedArrayUtils;
 
 
 /*
@@ -76,10 +77,10 @@ public enum IndexType implements CmdLineOptionsProvider {
 			int[] bits = ArrayUtils.parseCommaDelimitedInts(nBitsStr);
 			if(posMode.npos != bits.length) throw new IOException("Incorrect number of bits, expecting: " + posMode.npos);
 
-			double[] mins = ArrayUtils.parseCommaDelimitedDoubles(minStr);
+			double[] mins = ExtendedArrayUtils.parseCommaDelimitedDoubles(minStr);
 			if(posMode.npos != mins.length) throw new IOException("Incorrect number of mins, expecting: " + posMode.npos);
 
-			double[] maxs = ArrayUtils.parseCommaDelimitedDoubles(maxStr);
+			double[] maxs = ExtendedArrayUtils.parseCommaDelimitedDoubles(maxStr);
 			if(posMode.npos != maxs.length) throw new IOException("Incorrect number of maxs, expecting: " + posMode.npos);
 
 			PositionSpec spec = new PositionSpec(posMode, bits,mins,maxs);

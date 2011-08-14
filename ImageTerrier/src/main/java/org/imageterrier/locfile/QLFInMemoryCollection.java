@@ -72,11 +72,6 @@ public class QLFInMemoryCollection<F extends QuantisedLocalFeature<?>> implement
 	}
 
 	@Override
-	public String getDocid() {
-		return null;
-	}
-
-	@Override
 	public boolean endOfCollection() {
 		return (idx+1 >= docs.size());
 	}

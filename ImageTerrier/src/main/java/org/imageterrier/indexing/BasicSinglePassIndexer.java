@@ -62,6 +62,11 @@ public class BasicSinglePassIndexer extends ExtensibleSinglePassIndexer {
 				numOfTokensInDocument++;
 			}
 		}
+
+		@Override
+		public boolean reset() {
+			return true;
+		}
 	}
 	
 	public BasicSinglePassIndexer(String pathname, String prefix) {
