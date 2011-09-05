@@ -36,6 +36,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
+import org.apache.hadoop.mapreduce.lib.map.MultithreadedMapper;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.partition.HashPartitioner;
@@ -45,7 +46,13 @@ import org.imageterrier.hadoop.mapreduce.PositionAwareSequenceFileInputFormat;
 import org.imageterrier.locfile.QLFDocument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
+import org.openimaj.feature.local.LocalFeature;
+import org.openimaj.feature.local.list.LocalFeatureList;
+import org.openimaj.feature.local.list.MemoryLocalFeatureList;
 import org.openimaj.feature.local.quantised.QuantisedLocalFeature;
+import org.openimaj.io.IOUtils;
+import org.openimaj.ml.clustering.Cluster;
+import org.openimaj.tools.clusterquantiser.ClusterType;
 import org.terrier.indexing.AbstractHadoopIndexer;
 import org.terrier.indexing.Document;
 import org.terrier.indexing.ExtensibleSinglePassIndexer;
@@ -75,10 +82,12 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 	 */
 	static class IndexerMapper extends HadoopIndexerMapper<BytesWritable> {
 		protected Class<? extends QuantisedLocalFeature<?>> featureClass;
+		protected HadoopIndexerOptions options;
+		private Cluster<?, ?> quantiser;
 
 		@Override
 		protected ExtensibleSinglePassIndexer createIndexer(Context context) throws IOException {
-			HadoopIndexerOptions options = getOptions(context.getConfiguration());
+			options = getOptions(context.getConfiguration());
 			
 			featureClass = options.getFeatureClass();
 			return options.getIndexType().getIndexer(null, null);
@@ -87,7 +96,47 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 		@SuppressWarnings({ "rawtypes", "unchecked" })
 		@Override
 		protected Document recordToDocument(Text key, BytesWritable value) throws IOException {
-			return new QLFDocument(value.getBytes(), featureClass, key.toString(), null);
+			switch (options.getInputMode()) {
+			case QUANTISED_FEATURES:
+				return new QLFDocument(value.getBytes(), featureClass, key.toString(), null);
+			case IMAGES:
+				return processImage(key, value);
+			default:
+				throw new RuntimeException("Unsupported mode");
+			}
+		}
+
+		@SuppressWarnings({ "rawtypes", "unchecked" })
+		private Document processImage(Text key, BytesWritable value) throws IOException {
+			//extract features
+			LocalFeatureList<? extends LocalFeature<?>> features = options.getInputModeOptions().getFeatureType().getKeypointList(value.getBytes());
+			
+			//load quantiser if required
+			synchronized(this) {
+				if (this.quantiser == null) {
+					options.getInputModeOptions().quantiserType = ClusterType.sniffClusterType(options.getInputModeOptions().getQuantiserFile());
+					
+					if (options.getInputModeOptions().quantiserType != null)
+						this.quantiser = IOUtils.read(options.getInputModeOptions().getQuantiserFile(), options.getInputModeOptions().getQuantiserType().getClusterClass());
+				}
+			}
+			
+			//quantise features
+			LocalFeatureList<QuantisedLocalFeature<?>> qkeys = new MemoryLocalFeatureList<QuantisedLocalFeature<?>>(features.size());
+			if (quantiser.getClusters() instanceof byte[][]) {
+				for (LocalFeature k : features) {
+					int id = ((Cluster<?,byte[]>)quantiser).push_one((byte[])k.getFeatureVector().getVector());
+					qkeys.add(new QuantisedLocalFeature(k.getLocation(), id));
+				}
+			} else {
+				for (LocalFeature k : features) {
+					int id = ((Cluster<?,int[]>)quantiser).push_one((int[])k.getFeatureVector().getVector());
+					qkeys.add(new QuantisedLocalFeature(k.getLocation(), id));
+				}
+			}
+			
+			//create document
+			return new QLFDocument(qkeys, key.toString(), null);	
 		}
 	}
 
@@ -125,7 +174,13 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 		Job job = new Job(getConf());
 		job.setJobName("terrierIndexing");
 
-		job.setMapperClass(IndexerMapper.class);
+		if (options.getMultithread() <= 0) {
+			job.setMapperClass(IndexerMapper.class);
+		} else {
+			job.setMapperClass(MultithreadedMapper.class);
+			MultithreadedMapper.setNumberOfThreads(job, options.getMultithread());
+			MultithreadedMapper.setMapperClass(job, IndexerMapper.class);
+		}
 		job.setReducerClass(IndexerReducer.class);
 
 		FileOutputFormat.setOutputPath(job, options.getOutputPath());
@@ -175,7 +230,7 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 	 */
 	@Override
 	public int run(String[] args) throws Exception {
-		long time =System.currentTimeMillis();
+		long time = System.currentTimeMillis();
 		
 		HadoopIndexerOptions options = new HadoopIndexerOptions();
 		CmdLineParser parser = new CmdLineParser(options);

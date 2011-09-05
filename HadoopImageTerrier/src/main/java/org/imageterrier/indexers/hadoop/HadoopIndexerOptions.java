@@ -6,6 +6,8 @@ import java.util.List;
 
 import org.apache.hadoop.fs.Path;
 import org.imageterrier.toolopts.IndexType;
+import org.imageterrier.toolopts.InputMode;
+import org.imageterrier.toolopts.InputMode.InputModeOptions;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.ProxyOptionHandler;
@@ -35,6 +37,13 @@ public class HadoopIndexerOptions {
 	
 	@Option(name = "--feature-class", aliases = "-fc", usage = "Java class of the quantised features", required = true, metaVar = "class")
 	private String featureClass;
+	
+	@Option(name = "--mode", aliases = "-m", usage = "input mode", required = true, metaVar = "mode")
+	private InputMode inputMode;
+	private InputModeOptions inputModeOp;
+	
+	@Option(name = "--multithread", aliases = "-j", usage = "enable multithread mapper mode with given number of threads. 0 or less disables.", required = false, metaVar = "threads")
+	int multithread = 0;
 	
 	@Argument(required = true)
 	private List<String> inputPaths = new ArrayList<String>();
@@ -87,7 +96,7 @@ public class HadoopIndexerOptions {
 	/**
 	 * Get the list of paths to build the index from. The paths
 	 * should be sequence files containing quantised local features
-	 * of the specified type. If a directory is given, it is automatically
+	 * or images (depending on the mode). If a directory is given, it is automatically
 	 * searched for internal sequence files starting with the name "part".
 	 * This allows easy coupling to features generated from previous reducer
 	 * passes (i.e. from the cluster-quantiser).
@@ -110,5 +119,20 @@ public class HadoopIndexerOptions {
 
 	public String getOutputPathString() {
 		return outputPath;
+	}
+	
+	public InputMode getInputMode() {
+		return inputMode;
+	}
+	
+	public InputModeOptions getInputModeOptions() {
+		return inputModeOp;
+	}
+
+	/**
+	 * @return the multithread
+	 */
+	public int getMultithread() {
+		return multithread;
 	}
 }
