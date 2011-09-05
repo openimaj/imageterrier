@@ -23,9 +23,9 @@ static def weightedMeanCenter(results) {
 		def weight = (results.size() - order) / results.size()
 		latMean += it.latitude * weight
 		lonMean += it.longitude * weight
-		if(it.latitude > 0 && it.longitude > 0){
+		//if(it.latitude > 0 && it.longitude > 0){
 			total+=weight
-		}
+		//}
 		order += 1
 	})
 	return [
@@ -65,6 +65,7 @@ def boundedBestWeightedMeanCenter(resultsHolder,threshold) {
 	
 	return mean
 }
+
 return { results, settings ->
 	threshold = settings.get("threshold",100)
 	def mean = boundedBestWeightedMeanCenter(results,threshold)

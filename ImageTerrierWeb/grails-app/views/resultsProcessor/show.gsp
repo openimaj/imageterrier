@@ -8,7 +8,14 @@
 		<title><g:message code="default.show.label" args="[entityName]" /></title>
 		<syntax:resources name="code" languages="['Java', 'Groovy']" />
 		<link rel="stylesheet" href="/ImageTerrierWeb/plugins/console-1.0.1/css/grails-console.css">
+		<style type="text/css" media="screen">
+			.dp-j{
+				height:200px;
+				overflow-y: scroll;
+			}
+		</style>
 	</head>
+	
 	<body>
 		<div class="nav">
 			<span class="menuButton"><a class="home" href="${createLink(uri: '/')}"><g:message code="default.home.label"/></a></span>

@@ -1,40 +1,53 @@
-import org.imageterrier.webapp.Metadata
-import org.imageterrier.webapp.MetadataImporter
-
-return {data, collection, index ->
-	def csvregex = ',(?=(?:[^\"]*\"[^\"]*\")*(?![^\"]*\"))'
-	int count = 0
-	
-	// first lets see what the path of an image in this index looks like
-	int exampleDoc = index.loadIndex().index.metaIndex.getDocument("docno", "0")
-	String examplePath = index.loadIndex().index.metaIndex.getItem("path",exampleDoc)
-	String basePath = examplePath.replaceAll("^(.*[?]key=).*\$","\$1")
-	data.eachLine() {line ->
-		def parts = line.split(csvregex)
-
-		if (parts.length == 19) {
-			def imageURL = parts[5].trim()
-			// println imageURL
-			def extention = imageURL.split("[.]")
-			// println extention
-			def imageTerrierId = -1;
-			if(extention.length>0){
-				extention = extention[extention.length-1]
-				// println "Constructed path looks like: \n\t" + basePath + parts[2].trim()+"." + extention
-				int doc = index.loadIndex().index.metaIndex.getDocument("path", basePath + parts[2].trim() +"." + extention)
-				imageTerrierId = doc
-			}
-			
-			
-			MetadataImporter.createMetadata(imageTerrierId, imageURL, line, collection)
-		}
-		
-		if ((count++) > 5000) {
-			println "flushing batch"
-			count = 0
-			collection.save()
-		}
-	}
-	
-	collection.save()
+import org.imageterrier.webapp.Metadata  
+import org.imageterrier.webapp.MetadataImporter  
+  
+return {data, collection, index ->  
+   def csvregex = ',(?=(?:[^\"]*\"[^\"]*\")*(?![^\"]*\"))'  
+   int count = 0  
+     
+   // first lets see what the path of an image in this index looks like  
+   int exampleDoc = index.loadIndex().index.metaIndex.getDocument("docno", "0")  
+   String examplePath = index.loadIndex().index.metaIndex.getItem("path",exampleDoc) 
+   String basePath = ""  
+   if(examplePath.contains("?key=")){ // deals with old style sequence file name in index path
+       basePath = examplePath.replaceAll("^(.*[?]key=).*\$","\$1")
+   }
+   
+   data.eachLine() {line ->  
+      def parts = line.split(csvregex)  
+      println "The line is: \n\t $line"  
+     println "The parts length is: \n\t $parts.length"   
+      if (parts.length >= 18) {  
+         println "The parts length was more than 19"  
+         def imageURL = parts[5].trim()  
+         // println imageURL  
+         def extention = imageURL.split("[.]")  
+         // println extention  
+         def imageTerrierId = -1;  
+         if(extention.length>0){  
+            extention = extention[extention.length-1].replaceAll("\"","").toLowerCase()  // Deals with JPG and "blahblah.JPG"
+            def image_id = parts[2].trim()  
+            if(image_id == "")    
+                {    
+                   println "... but the image_id was empty!"  
+                    String[] dirParts = parts[6].split("[/]")    
+                    image_id = dirParts[dirParts.length - 1]    
+                }  
+                println "...Constructed path looks like: \t\"" + basePath + image_id +"." + extention + "\""  
+            int doc = index.loadIndex().index.metaIndex.getDocument("path", basePath + image_id +"." + extention)  
+            imageTerrierId = doc  
+         }  
+           
+           
+         MetadataImporter.createMetadata(imageTerrierId, imageURL, line, collection)  
+      }  
+        
+      if ((count++) > 5000) {  
+         println "flushing batch"  
+         count = 0  
+         collection.save()  
+      }  
+   }  
+     
+   collection.save()  
 }

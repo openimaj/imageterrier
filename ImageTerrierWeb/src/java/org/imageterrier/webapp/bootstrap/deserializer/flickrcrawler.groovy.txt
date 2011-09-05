@@ -1,48 +1,56 @@
-return {data ->
-    def csvregex = ',(?=(?:[^\"]*\"[^\"]*\")*(?![^\"]*\"))'
-    
-    def parts = data.split(csvregex)
-    
-    def md = [:]
-	md.farm = parts[0].trim() as int
-	md.server = parts[1].trim() as int
-	md.image_id = parts[2].trim() as long
-	md.secret = parts[3].trim()
-	md.original_secret  = parts[4].trim()
-	md.medium_url = new URL(parts[5].trim())
-	md.directory = parts[6].trim()
-	md.title = parts[7].trim()
-	md.description = parts[8].trim()
-	md.license_type = parts[9].trim() as int
-	md.date_posted = Date.parse("EEE MMM dd HH:mm:ss zzz yyyy", parts[10].trim())
-	md.date_taken = Date.parse("EEE MMM dd HH:mm:ss zzz yyyy", parts[11].trim())
-	md.owner_id = parts[12].trim()
-	md.owner_username = parts[13].trim()
-	
-	if (parts[14].trim() != "null") {
-		md.geo_accuracy = parts[14].trim() as int
-		md.latitude = parts[15].trim() as double
-		md.longitude = parts[16].trim() as double
-	}
-	
-	if (md.geo_accuracy == 1) {
-		md.latitude = 0
-		md.longitude = 0
-	}
-	
-	md.tags = []
-	def tagString = parts[17].trim()
-	if (tagString.length() > 2) {
-		tagString = tagString.substring(2,tagString.length()-2)
-
-		tagString.split(",").each {t ->
-			t = t.trim()
-			
-			if (t.length() > 0) {
-				md.tags << t
-			}
-		}
-	}
-	
-	return md
+return {data ->  
+    def csvregex = ',(?=(?:[^\"]*\"[^\"]*\")*(?![^\"]*\"))'  
+      
+    def parts = data.split(csvregex)  
+      
+    def md = [:]  
+   md.farm = parts[0].trim() as int  
+   md.server = parts[1].trim() as int  
+   if(parts[2].trim()!="")  
+      md.image_id = parts[2].trim() as long  
+   else  
+      md.image_id = ""  
+   md.secret = parts[3].trim()  
+   md.original_secret  = parts[4].trim()  
+   md.medium_url = new URL(parts[5].trim().replace("\"",""))  
+   md.directory = parts[6].trim()  
+   if(md.image_id == "")    
+    {    
+        String[] dirParts = md.directory.split("[/]")    
+        md.image_id = dirParts[dirParts.length - 1]    
+    }  
+   md.title = parts[7].trim()  
+   md.description = parts[8].trim()  
+   md.license_type = parts[9].trim() as int  
+   md.date_posted = Date.parse("EEE MMM dd HH:mm:ss zzz yyyy", parts[10].trim().replace("\"",""))  
+   md.date_taken = Date.parse("EEE MMM dd HH:mm:ss zzz yyyy", parts[11].trim().replace("\"",""))  
+   md.owner_id = parts[12].trim()  
+   md.owner_username = parts[13].trim()  
+     
+   if (parts[14].trim() != "null") {  
+      md.geo_accuracy = parts[14].trim() as int  
+      md.latitude = parts[15].trim() as double  
+      md.longitude = parts[16].trim() as double  
+   }  
+     
+   if (md.geo_accuracy == 1) {  
+      md.latitude = 0  
+      md.longitude = 0  
+   }  
+     
+   md.tags = []  
+   def tagString = parts[17].trim()  
+   if (tagString.length() > 2) {  
+      tagString = tagString.substring(2,tagString.length()-2)  
+  
+      tagString.split(",").each {t ->  
+         t = t.trim()  
+           
+         if (t.length() > 0) {  
+            md.tags << t  
+         }  
+      }  
+   }  
+     
+   return md  
 }

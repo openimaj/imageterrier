@@ -29,17 +29,10 @@
 package org.imageterrier.indexers.hadoop;
 
 import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.compress.GzipCodec;
-import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
@@ -49,11 +42,10 @@ import org.apache.hadoop.mapreduce.lib.partition.HashPartitioner;
 import org.apache.hadoop.util.ToolRunner;
 import org.imageterrier.basictools.BasicTerrierConfig;
 import org.imageterrier.hadoop.mapreduce.PositionAwareSequenceFileInputFormat;
-import org.imageterrier.indexing.BasicSinglePassIndexer;
-import org.imageterrier.locfile.PositionSpec;
 import org.imageterrier.locfile.QLFDocument;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
 import org.openimaj.feature.local.quantised.QuantisedLocalFeature;
-import org.openimaj.image.feature.local.keypoints.quantised.QuantisedKeypoint;
 import org.terrier.indexing.AbstractHadoopIndexer;
 import org.terrier.indexing.Document;
 import org.terrier.indexing.ExtensibleSinglePassIndexer;
@@ -64,7 +56,6 @@ import org.terrier.structures.indexing.singlepass.hadoop.MapEmittedPostingList;
 import org.terrier.structures.indexing.singlepass.hadoop.NewSplitEmittedTerm;
 import org.terrier.utility.ApplicationSetup;
 import org.terrier.utility.Files;
-import org.terrier.utility.io.WrappedIOException;
 
 
 /**
@@ -77,9 +68,7 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 		BasicTerrierConfig.configure();
 	}
 	
-	public static final String INDEXER_CLASS_KEY = "indexer.class";
-	public static final String INDEXER_POSITION_SPEC_KEY = "indexer.position.spec";
-	public static final String INDEXER_FEATURE_CLASS = "indexer.feature.class";
+	public static final String INDEXER_ARGS_STRING = "indexer.args";
 
 	/**
 	 * The mapper implementation
@@ -87,16 +76,12 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 	static class IndexerMapper extends HadoopIndexerMapper<BytesWritable> {
 		protected Class<? extends QuantisedLocalFeature<?>> featureClass;
 
-		@SuppressWarnings("unchecked")
 		@Override
 		protected ExtensibleSinglePassIndexer createIndexer(Context context) throws IOException {
-			try {
-				featureClass = (Class<? extends QuantisedLocalFeature<?>>) Class.forName(context.getConfiguration().get(INDEXER_FEATURE_CLASS));
-			} catch (ClassNotFoundException e) {
-				throw new WrappedIOException(e);
-			}
-
-			return createIndexerInstance(context.getConfiguration());
+			HadoopIndexerOptions options = getOptions(context.getConfiguration());
+			
+			featureClass = options.getFeatureClass();
+			return options.getIndexType().getIndexer(null, null);
 		}
 
 		@SuppressWarnings({ "rawtypes", "unchecked" })
@@ -112,87 +97,63 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 	static class IndexerReducer extends HadoopIndexerReducer {
 		@Override
 		protected ExtensibleSinglePassIndexer createIndexer(Context context) throws IOException {
-			return createIndexerInstance(context.getConfiguration());
+			return getOptions(context.getConfiguration()).getIndexType().getIndexer(null, null);
 		}
 	}
 
-	protected static ExtensibleSinglePassIndexer createIndexerInstance(Configuration conf) throws IOException {
+	private static HadoopIndexerOptions getOptions(Configuration conf) throws IOException {
+		String [] args = conf.getStrings(INDEXER_ARGS_STRING);
+
+		HadoopIndexerOptions options = new HadoopIndexerOptions();
+		CmdLineParser parser = new CmdLineParser(options);
+		
 		try {
-			Class<?> clz = Class.forName(conf.get(INDEXER_CLASS_KEY));
-			try {
-				Constructor<?> cnstr = clz.getConstructor(String.class, String.class);
-				try {
-					return (ExtensibleSinglePassIndexer) cnstr.newInstance(null, null);
-				} catch (Exception e) {
-					throw new WrappedIOException(e);
-				}
-			} catch (SecurityException e) {
-				throw new WrappedIOException(e);
-			} catch (NoSuchMethodException e) {
-				try {
-					//special case for Position index
-					Constructor<?> cnstr = clz.getConstructor(String.class, String.class, PositionSpec.class);
-					return (ExtensibleSinglePassIndexer) cnstr.newInstance(null, null, PositionSpec.decode(conf.get(INDEXER_POSITION_SPEC_KEY)));
-				} catch (Exception e2) {
-					throw new WrappedIOException(e2);
-				}
-			}
-		} catch (ClassNotFoundException e) {
-			throw new WrappedIOException(e);
+		    parser.parseArgument(args);
+		} catch(CmdLineException e) {
+			throw new IOException(e);
 		}
+		
+		return options;
 	}
-
+	
 	private static final String usage()
 	{
 		return "Usage: HadoopIndexing [-p]";
 	}
 	
-	protected Job createJob(boolean docPartitioned, int numberOfReducers) throws IOException {
+	protected Job createJob(HadoopIndexerOptions options) throws IOException {
 		Job job = new Job(getConf());
 		job.setJobName("terrierIndexing");
 
 		job.setMapperClass(IndexerMapper.class);
 		job.setReducerClass(IndexerReducer.class);
 
-		FileOutputFormat.setOutputPath(job, new Path(ApplicationSetup.TERRIER_INDEX_PATH));
+		FileOutputFormat.setOutputPath(job, options.getOutputPath());
 		job.setMapOutputKeyClass(NewSplitEmittedTerm.class);
 		job.setMapOutputValueClass(MapEmittedPostingList.class);
-		job.getConfiguration().setBoolean("indexing.hadoop.multiple.indices", docPartitioned);
+		job.getConfiguration().setBoolean("indexing.hadoop.multiple.indices", options.isDocumentPartitionMode());
 
-		if (!job.getConfiguration().get("mapred.job.tracker").equals("local")) {
-			job.getConfiguration().set("mapred.map.output.compression.codec", GzipCodec.class.getCanonicalName());
-			job.getConfiguration().setBoolean("mapred.compress.map.output", true);
-		} else {
+//		if (!job.getConfiguration().get("mapred.job.tracker").equals("local")) {
+//			job.getConfiguration().set("mapred.map.output.compression.codec", GzipCodec.class.getCanonicalName());
+//			job.getConfiguration().setBoolean("mapred.compress.map.output", true);
+//		} else {
 			job.getConfiguration().setBoolean("mapred.compress.map.output", false);
-		}
+//		}
 		
 		job.setInputFormatClass(PositionAwareSequenceFileInputFormat.class); //important
-		//job.setOutputFormatClass(NullOutputFormat.class);
+		
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
+		
 		job.setSortComparatorClass(NewSplitEmittedTerm.SETRawComparatorTermSplitFlush.class);
 		job.setGroupingComparatorClass(NewSplitEmittedTerm.SETRawComparatorTerm.class);
 
 		job.getConfiguration().setBoolean("mapred.reduce.tasks.speculative.execution", false);
-
-		//parse the collection.spec
-//		BufferedReader specBR = Files.openFileReader(ApplicationSetup.COLLECTION_SPEC);
-//		String line = null;
-		List<Path> paths = new ArrayList<Path>();
-//		while((line = specBR.readLine()) != null) {
-//			if (line.startsWith("#"))
-//				continue;
-//			paths.add(new Path(line));
-//		}
-//		specBR.close();
-//		paths.add(new Path("hdfs://degas/data/ukbench-sift-random-1000000/part-r-00000"));				//TEST
-		paths.add(new Path("/Users/jon/ukbench-sift-intensity.seq"));									//TEST
-		job.getConfiguration().set(INDEXER_FEATURE_CLASS, QuantisedKeypoint.class.getCanonicalName()); 	//TEST
-		job.getConfiguration().set(INDEXER_CLASS_KEY, BasicSinglePassIndexer.class.getCanonicalName()); //TEST
 		
-		SequenceFileInputFormat.setInputPaths(job, paths.toArray(new Path[paths.size()]));
-		job.setNumReduceTasks(numberOfReducers);
-		if (numberOfReducers> 1) {
-			if (docPartitioned)
+		SequenceFileInputFormat.setInputPaths(job, options.getInputPaths());
+		
+		job.setNumReduceTasks(options.getNumReducers());
+		if (options.getNumReducers() > 1) {
+			if (options.isDocumentPartitionMode())
 				job.setPartitionerClass(NewSplitEmittedTerm.SETPartitioner.class);
 			else
 				job.setPartitionerClass(NewSplitEmittedTerm.SETPartitionerLowercaseAlphaTerm.class);
@@ -206,44 +167,38 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 		return job;
 	}
 	
-	/** Starts the Map reduce indexing.
+	/** 
+	 * Process the arguments and start the map-reduce indexing.
+	 * 
 	 * @param args
 	 * @throws Exception
 	 */
 	@Override
 	public int run(String[] args) throws Exception {
 		long time =System.currentTimeMillis();
+		
+		HadoopIndexerOptions options = new HadoopIndexerOptions();
+		CmdLineParser parser = new CmdLineParser(options);
+		try {
+		    parser.parseArgument(args);
+		} catch(CmdLineException e) {
+		    logger.fatal(e.getMessage());
+		    logger.fatal(usage());
+		    return 1;
+		}
 
-		if (Files.exists(ApplicationSetup.TERRIER_INDEX_PATH) && Index.existsIndex(ApplicationSetup.TERRIER_INDEX_PATH, ApplicationSetup.TERRIER_INDEX_PREFIX))
-		{
-			logger.fatal("Cannot index while index exists at " + ApplicationSetup.TERRIER_INDEX_PATH + "," + ApplicationSetup.TERRIER_INDEX_PREFIX);
+		if (Files.exists(options.getOutputPathString()) && Index.existsIndex(options.getOutputPathString(), ApplicationSetup.TERRIER_INDEX_PREFIX)) {
+			logger.fatal("Cannot index while index exists at " + options.getOutputPathString() + "," + ApplicationSetup.TERRIER_INDEX_PREFIX);
 			return 1;
 		}
 		
-		boolean docPartitioned = false;
-		int numberOfReducers = Integer.parseInt(ApplicationSetup.getProperty("terrier.hadoop.indexing.reducers", "26"));
-		if (args.length==2 && args[0].equals("-p"))
-		{
-			logger.info("Document-partitioned Mode, "+numberOfReducers+" output indices.");
-			numberOfReducers = Integer.parseInt(args[1]);
-			docPartitioned = true;
-		}
-		else if (args.length == 0)
-		{
-			logger.info("Term-partitioned Mode, "+numberOfReducers+" reducers creating one inverted index.");
-			docPartitioned = false;
-			if (numberOfReducers > 26)
-			{
-				logger.warn("Excessive reduce tasks ("+numberOfReducers+") in use - SplitEmittedTerm.SETPartitionerLowercaseAlphaTerm can use 26 at most");
-			}
-		} else
-		{
-			logger.fatal(usage());
-			return 1;
-		}
+		// create job
+		Job job = createJob(options);
 		
-		Job job = createJob(docPartitioned, numberOfReducers);
+		//set args string
+		job.getConfiguration().setStrings(INDEXER_ARGS_STRING, args);
 
+		//run job
 		JobID jobId = null;
 		boolean ranOK = true;
 		try {
@@ -255,17 +210,17 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 		}
 
 		if (jobId != null) {
-			deleteTaskFiles(ApplicationSetup.TERRIER_INDEX_PATH, jobId);
+			deleteTaskFiles(options.getOutputPathString(), jobId);
 		}
 
 		if (ranOK) {
-			if (! docPartitioned) {
-				if (numberOfReducers > 1) {
-					mergeLexiconInvertedFiles(ApplicationSetup.TERRIER_INDEX_PATH, numberOfReducers);
+			if (! options.isDocumentPartitionMode()) {
+				if (options.getNumReducers() > 1) {
+					mergeLexiconInvertedFiles(options.getOutputPathString(), options.getNumReducers());
 				}
 			}
 
-			finish(ApplicationSetup.TERRIER_INDEX_PATH, docPartitioned ? numberOfReducers : 1, job.getConfiguration());
+			finish(options.getOutputPathString(), options.isDocumentPartitionMode() ? options.getNumReducers() : 1, job.getConfiguration());
 		}
 
 		System.out.println("Time Taken = "+((System.currentTimeMillis()-time)/1000)+" seconds");
@@ -274,7 +229,13 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 	}
 
 	public static void main(String[] args) throws Exception {
-		ApplicationSetup.setProperty("terrier.hadoop.indexing.reducers", "1");
+//		args = new String[] { 
+//				"-t", "BASIC",
+//				"-nr", "1",
+//				"-fc", "QuantisedKeypoint",
+//				"-o", "/Users/jsh2/test.index",
+//				"/Users/jsh2/ukbench-sift-intensity.seq"
+//		};
 		
 		ToolRunner.run(new HadoopIndexer(), args);
 	}

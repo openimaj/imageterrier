@@ -42,6 +42,7 @@ import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.TaskID;
 import org.apache.hadoop.util.Tool;
 import org.apache.log4j.Logger;
+import org.imageterrier.hadoop.fs.TerrierHDFSAdaptor;
 import org.imageterrier.indexers.hadoop.HadoopIndexer;
 import org.terrier.structures.BitIndexPointer;
 import org.terrier.structures.BitPostingIndexInputStream;
@@ -62,6 +63,19 @@ import org.terrier.utility.Files;
 public abstract class AbstractHadoopIndexer extends Configured implements Tool {
 	protected static final Logger logger = Logger.getLogger(HadoopIndexer.class);
 	
+	/* (non-Javadoc)
+	 * @see org.apache.hadoop.conf.Configured#setConf(org.apache.hadoop.conf.Configuration)
+	 */
+	@Override
+	public void setConf(Configuration conf) {
+		super.setConf(conf);
+		try {
+			if (conf != null) TerrierHDFSAdaptor.initialiseHDFSAdaptor(conf);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	@SuppressWarnings("unchecked")
 	protected void mergeLexiconInvertedFiles(String index_path, int numberOfReducers) throws IOException {
 		final String lexiconStructure = "lexicon";
@@ -80,15 +94,15 @@ public abstract class AbstractHadoopIndexer extends Configured implements Tool {
 		Arrays.fill(existsIndices, true);
 		for(int i=0;i<numberOfReducers;i++)
 		{
-			srcIndices[i] = Index.createIndex(index_path, "data-"+i);
+			srcIndices[i] = Index.createIndex(index_path, ApplicationSetup.TERRIER_INDEX_PREFIX+"-"+i);
 			if (srcIndices[i] == null)
 			{
 				//remove any empty inverted file for this segment
-				Files.delete(BitPostingIndexInputStream.getFilename(index_path, "data-"+i, invertedStructure, (byte)1, (byte)1));
+				Files.delete(BitPostingIndexInputStream.getFilename(index_path, ApplicationSetup.TERRIER_INDEX_PREFIX+"-"+i, invertedStructure, (byte)1, (byte)1));
 
 				//remember that this index doesnt exist
 				existsIndices[i] = false;
-				logger.warn("No reduce "+i+" output : no output index ["+index_path+","+("data-"+i)+ "]");
+				logger.warn("No reduce "+i+" output : no output index ["+index_path+","+(ApplicationSetup.TERRIER_INDEX_PREFIX+"-"+i)+ "]");
 			}
 		}
 		//2. the target index is the first source index
@@ -163,12 +177,12 @@ public abstract class AbstractHadoopIndexer extends Configured implements Tool {
 		//8. rearrange indices into desired layout
 
 		//rename target index
-		IndexUtil.renameIndex(index_path, "data-0", index_path, "data");
+		IndexUtil.renameIndex(index_path, ApplicationSetup.TERRIER_INDEX_PREFIX+"-0", index_path, ApplicationSetup.TERRIER_INDEX_PREFIX);
 		//delete other source indices
 		for(int i=1;i<numberOfReducers;i++)
 		{
 			if (existsIndices[i])
-				IndexUtil.deleteIndex(index_path, "data-" + i);
+				IndexUtil.deleteIndex(index_path, ApplicationSetup.TERRIER_INDEX_PREFIX+"-" + i);
 		}
 
 		//restore loading profile
@@ -222,7 +236,7 @@ public abstract class AbstractHadoopIndexer extends Configured implements Tool {
 				@Override
 				public void run() {
 					try{
-						Index index = Index.createIndex(destinationIndexPath, "data-"+id);
+						Index index = Index.createIndex(destinationIndexPath, ApplicationSetup.TERRIER_INDEX_PREFIX+"-"+id);
 						NewCompressingMetaIndexBuilder.reverseAsMapReduceJob(index, "meta", reverseMetaKeys);
 						index.close();
 					} catch (Exception e) {

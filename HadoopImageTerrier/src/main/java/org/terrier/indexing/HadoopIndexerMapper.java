@@ -35,6 +35,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.imageterrier.hadoop.fs.TerrierHDFSAdaptor;
 import org.imageterrier.hadoop.mapreduce.PositionAwareSplitWrapper;
 import org.terrier.structures.FieldDocumentIndexEntry;
 import org.terrier.structures.Index;
@@ -88,6 +89,8 @@ public abstract class HadoopIndexerMapper<VALUEIN> extends Mapper<Text, VALUEIN,
 	
 	@Override
 	protected void setup(Context context) throws IOException, InterruptedException {
+		TerrierHDFSAdaptor.initialiseHDFSAdaptor(context.getConfiguration());
+		
 		proxyIndexer = createIndexer(context);
 		
 		currentContext = context;
@@ -142,8 +145,14 @@ public abstract class HadoopIndexerMapper<VALUEIN> extends Mapper<Text, VALUEIN,
 	protected void map(Text key, VALUEIN value, Context context) throws IOException, InterruptedException {
 		final String docno = key.toString();
 		context.setStatus("Currently indexing "+docno);
+		
 		final Document doc = recordToDocument(key, value);
 		
+		indexDocument(doc, context);
+		context.getCounter(Counters.INDEXED_DOCUMENTS).increment(1);
+	}
+	
+	protected void indexDocument(final Document doc, Context context) throws IOException {
 		/* setup for parsing */
 		proxyIndexer.createDocumentPostings();
 		
@@ -201,7 +210,6 @@ public abstract class HadoopIndexerMapper<VALUEIN> extends Mapper<Text, VALUEIN,
 		}
 		
 		proxyIndexer.termsInDocument.clear();
-		context.getCounter(Counters.INDEXED_DOCUMENTS).increment(1);
 	}
 	
 	/** causes the posting lists built up in memory to be flushed out */

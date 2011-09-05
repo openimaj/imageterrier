@@ -28,18 +28,15 @@
  */
 package org.imageterrier.basictools;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.imageterrier.toolopts.IndexType;
+import org.imageterrier.toolopts.InputMode;
+import org.imageterrier.toolopts.InputMode.InputModeOptions;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.ProxyOptionHandler;
-
-import org.openimaj.tools.clusterquantiser.ClusterType;
-import org.openimaj.tools.localfeature.LocalFeatureMode;
 
 /**
  * Options for indexing
@@ -47,22 +44,14 @@ import org.openimaj.tools.localfeature.LocalFeatureMode;
  * @author Jonathon Hare
  */
 public class BasicIndexerOptions {
+	@Option(name = "--mode", aliases = "-m", usage = "input mode", required = true, metaVar = "mode")
+	private InputMode inputMode;
+	private InputModeOptions inputModeOp;
+	
 	@Option(name = "--output", aliases = "-o", usage = "path at which to write index", required = true, metaVar = "path")
 	private String filename;
 
-	@Option(name = "--quant-file", aliases = "-q", usage = "path to quantiser file", required = false, metaVar = "path")
-	private File quantiserFile;
-	
-	@Option(name = "--quant-type", aliases = "-qt", usage = "Quantiser type. Defaults to AKM (FastKMeans)", required = false, metaVar = "type", handler=ProxyOptionHandler.class) 
-	protected ClusterType quantiserType = ClusterType.FASTKMEANS;
-	
-	@Option(name = "--feature-type", aliases = "-ft", usage = "Feature type. Defaults to plain DoG/SIFT", required = false, metaVar = "type", handler=ProxyOptionHandler.class)
-	LocalFeatureMode featureType = LocalFeatureMode.SIFT;
-	
-	@Option(name = "--force-regeneration", aliases = "-f", usage = "force visterm regeneration")
-	private boolean forceRegeneration = false;
-
-	@Option(name="--type", aliases="-t", required=false, usage="Choose index type",handler=ProxyOptionHandler.class)
+	@Option(name="--type", aliases="-t", required=false, usage="Choose index type", handler=ProxyOptionHandler.class)
 	private IndexType indexType = IndexType.BASIC;
 	
 	@Option(name = "--verbose", aliases = "-v", usage = "print verbose output")
@@ -70,7 +59,7 @@ public class BasicIndexerOptions {
 	
 	@Argument(required = true)
 	private List<String> searchPaths = new ArrayList<String>();
-
+	
 	public boolean isVerbose() {
 		return verbose;
 	}
@@ -78,33 +67,20 @@ public class BasicIndexerOptions {
 	public String getFilename() {
 		return filename;
 	}
-
-	public boolean forceRegeneration() {
-		return forceRegeneration;
-	}
-
-	public List<String> getSearchPaths() {
-		return searchPaths;
-	}
-
-	public File getQuantiserFile() throws IOException {
-		if (quantiserFile == null) {
-			 quantiserFile = File.createTempFile("imageterrier", ".cluster");
-			 quantiserFile.delete();
-		}
-		
-		return quantiserFile;
-	}
-
-	public ClusterType getQuantiserType() {
-		return quantiserType;
-	}
-
-	public LocalFeatureMode getFeatureType() {
-		return featureType;
-	}
 	
 	public IndexType getIndexType() {
 		return indexType;
+	}
+	
+	public List<String> getSearchPaths() {
+		return searchPaths;
+	}
+	
+	public InputMode getInputMode() {
+		return inputMode;
+	}
+	
+	public InputModeOptions getInputModeOptions() {
+		return inputModeOp;
 	}
 }

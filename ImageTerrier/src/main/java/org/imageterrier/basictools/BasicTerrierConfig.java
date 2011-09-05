@@ -85,6 +85,8 @@ public class BasicTerrierConfig {
 			ApplicationSetup.setProperty("querying.postprocesses.order", "");
 			ApplicationSetup.loadCommonProperties(); //THIS IS REQUIRED TO PROPERLY READ PREFS (ApplicationSetup is a POS!!)
 			
+			ApplicationSetup.TERRIER_INDEX_PREFIX = "index"; //imageterrier convention
+			
 			//reconfigure log4j
 			new DOMConfigurator().doConfigure(new StringReader(DEFAULT_LOG4J_CONFIG.replace("__LEVEL__", System.getProperty(LOG_LEVEL, "warn"))), org.apache.log4j.LogManager.getLoggerRepository());
 			

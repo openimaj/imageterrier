@@ -61,6 +61,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.log4j.Level;
+import org.imageterrier.hadoop.fs.TerrierHDFSAdaptor;
 import org.terrier.structures.CompressingMetaIndex.InputStream;
 import org.terrier.structures.Index;
 import org.terrier.structures.collections.FSOrderedMapFile;
@@ -132,6 +133,8 @@ public class NewCompressingMetaIndexBuilder extends CompressingMetaIndexBuilder 
 
 		@Override
 		protected void setup(Context context) throws IOException, InterruptedException {
+			TerrierHDFSAdaptor.initialiseHDFSAdaptor(context.getConfiguration());
+			
 			reverseKeyCount = context.getConfiguration().getInt("CompressingMetaIndexBuilder.reverse.keyCount", 0);
 			reverseKeyNames = context.getConfiguration().get("CompressingMetaIndexBuilder.reverse.keys", "").split("\\s*,\\s*");
 			
@@ -181,6 +184,8 @@ public class NewCompressingMetaIndexBuilder extends CompressingMetaIndexBuilder 
 		
 		@Override
 		protected void setup(Context context) throws IOException, InterruptedException {
+			TerrierHDFSAdaptor.initialiseHDFSAdaptor(context.getConfiguration());
+			
 			Index.setIndexLoadingProfileAsRetrieval(false);
 			index = HadoopUtility.fromHConfiguration(context.getConfiguration());
 			reduceTaskFileDestinations = FileOutputFormat.getWorkOutputPath(context);
@@ -442,7 +447,7 @@ public class NewCompressingMetaIndexBuilder extends CompressingMetaIndexBuilder 
 
 		@Override
 		public RecordReader<IntWritable, Wrapper<String[]>> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
-//			HadoopUtility.loadTerrierJob(context);
+			TerrierHDFSAdaptor.initialiseHDFSAdaptor(context.getConfiguration());
 			
 			//load the index
 			Index.setIndexLoadingProfileAsRetrieval(false);

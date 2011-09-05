@@ -41,6 +41,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.imageterrier.hadoop.fs.TerrierHDFSAdaptor;
 import org.terrier.compression.BitIn;
 import org.terrier.compression.BitOutputStream;
 import org.terrier.structures.BasicLexiconEntry;
@@ -94,6 +95,8 @@ public abstract class HadoopIndexerReducer extends Reducer<NewSplitEmittedTerm, 
 	
 	@Override
 	protected void setup(Context context) throws IOException, InterruptedException {
+		TerrierHDFSAdaptor.initialiseHDFSAdaptor(context.getConfiguration());
+		
 		proxyIndexer = createIndexer(context);
 		
 		//load in the current index
@@ -105,9 +108,9 @@ public abstract class HadoopIndexerReducer extends Reducer<NewSplitEmittedTerm, 
 		
 		if (context.getNumReduceTasks() > 1) {
 			//gets the reduce number and suffices this to data
-			proxyIndexer.prefix = "data-"+reduceId;
+			proxyIndexer.prefix = ApplicationSetup.TERRIER_INDEX_PREFIX+"-"+reduceId;
 		} else {
-			proxyIndexer.prefix = "data";
+			proxyIndexer.prefix = ApplicationSetup.TERRIER_INDEX_PREFIX;
 		}
 		
 		proxyIndexer.currentIndex = Index.createNewIndex(proxyIndexer.path, proxyIndexer.prefix);
