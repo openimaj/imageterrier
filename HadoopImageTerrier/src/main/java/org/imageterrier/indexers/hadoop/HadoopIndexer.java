@@ -146,60 +146,10 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 	{
 		return "Usage: HadoopIndexing [-p]";
 	}
-
-	/** Starts the Map reduce indexing.
-	 * @param args
-	 * @throws Exception
-	 */
-	@Override
-	public int run(String[] args) throws Exception {
-		long time =System.currentTimeMillis();
-
-		Job job = new Job(getConf()) {
-			@Override
-			//this is broken in hadoop 0.20.1, and so we hack to fix
-			public JobID getJobID() {
-				Field f;
-				try {
-					f = Job.class.getDeclaredField("info");
-					f.setAccessible(true);
-					return ((RunningJob)f.get(this)).getID();
-				} catch (Exception e) {
-					e.printStackTrace();
-					return null;
-				}
-			}
-		};
-
+	
+	protected Job createJob(boolean docPartitioned, int numberOfReducers) throws IOException {
+		Job job = new Job(getConf());
 		job.setJobName("terrierIndexing");
-
-		if (Files.exists(ApplicationSetup.TERRIER_INDEX_PATH) && Index.existsIndex(ApplicationSetup.TERRIER_INDEX_PATH, ApplicationSetup.TERRIER_INDEX_PREFIX))
-		{
-			logger.fatal("Cannot index while index exists at " + ApplicationSetup.TERRIER_INDEX_PATH + "," + ApplicationSetup.TERRIER_INDEX_PREFIX);
-			return 1;
-		}
-
-		boolean docPartitioned = false;
-		int numberOfReducers = Integer.parseInt(ApplicationSetup.getProperty("terrier.hadoop.indexing.reducers", "26"));
-		if (args.length==2 && args[0].equals("-p"))
-		{
-			logger.info("Document-partitioned Mode, "+numberOfReducers+" output indices.");
-			numberOfReducers = Integer.parseInt(args[1]);
-			docPartitioned = true;
-		}
-		else if (args.length == 0)
-		{
-			logger.info("Term-partitioned Mode, "+numberOfReducers+" reducers creating one inverted index.");
-			docPartitioned = false;
-			if (numberOfReducers > 26)
-			{
-				logger.warn("Excessive reduce tasks ("+numberOfReducers+") in use - SplitEmittedTerm.SETPartitionerLowercaseAlphaTerm can use 26 at most");
-			}
-		} else
-		{
-			logger.fatal(usage());
-			return 1;
-		}
 
 		job.setMapperClass(IndexerMapper.class);
 		job.setReducerClass(IndexerReducer.class);
@@ -235,7 +185,7 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 //		}
 //		specBR.close();
 //		paths.add(new Path("hdfs://degas/data/ukbench-sift-random-1000000/part-r-00000"));				//TEST
-		paths.add(new Path("/Users/jsh2/test.seq"));													//TEST
+		paths.add(new Path("/Users/jon/ukbench-sift-intensity.seq"));									//TEST
 		job.getConfiguration().set(INDEXER_FEATURE_CLASS, QuantisedKeypoint.class.getCanonicalName()); 	//TEST
 		job.getConfiguration().set(INDEXER_CLASS_KEY, BasicSinglePassIndexer.class.getCanonicalName()); //TEST
 		
@@ -252,6 +202,47 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 		}
 
 		job.setJarByClass(this.getClass());
+		
+		return job;
+	}
+	
+	/** Starts the Map reduce indexing.
+	 * @param args
+	 * @throws Exception
+	 */
+	@Override
+	public int run(String[] args) throws Exception {
+		long time =System.currentTimeMillis();
+
+		if (Files.exists(ApplicationSetup.TERRIER_INDEX_PATH) && Index.existsIndex(ApplicationSetup.TERRIER_INDEX_PATH, ApplicationSetup.TERRIER_INDEX_PREFIX))
+		{
+			logger.fatal("Cannot index while index exists at " + ApplicationSetup.TERRIER_INDEX_PATH + "," + ApplicationSetup.TERRIER_INDEX_PREFIX);
+			return 1;
+		}
+		
+		boolean docPartitioned = false;
+		int numberOfReducers = Integer.parseInt(ApplicationSetup.getProperty("terrier.hadoop.indexing.reducers", "26"));
+		if (args.length==2 && args[0].equals("-p"))
+		{
+			logger.info("Document-partitioned Mode, "+numberOfReducers+" output indices.");
+			numberOfReducers = Integer.parseInt(args[1]);
+			docPartitioned = true;
+		}
+		else if (args.length == 0)
+		{
+			logger.info("Term-partitioned Mode, "+numberOfReducers+" reducers creating one inverted index.");
+			docPartitioned = false;
+			if (numberOfReducers > 26)
+			{
+				logger.warn("Excessive reduce tasks ("+numberOfReducers+") in use - SplitEmittedTerm.SETPartitionerLowercaseAlphaTerm can use 26 at most");
+			}
+		} else
+		{
+			logger.fatal(usage());
+			return 1;
+		}
+		
+		Job job = createJob(docPartitioned, numberOfReducers);
 
 		JobID jobId = null;
 		boolean ranOK = true;

@@ -145,7 +145,7 @@ public abstract class AbstractHadoopIndexer extends Configured implements Tool {
 				logger.warn("Structure " + tmpLexiconStructure + suffix + " not found when renaming");
 		}
 
-		//6. update destimation index
+		//6. update destination index
 
 		if (FieldScore.FIELDS_COUNT > 0)
 			dest.addIndexStructure("lexicon-valuefactory", FieldLexiconEntry.Factory.class.getName(), "java.lang.String", "${index.inverted.fields.count}");
