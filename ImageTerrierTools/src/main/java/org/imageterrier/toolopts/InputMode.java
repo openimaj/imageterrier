@@ -3,6 +3,7 @@ package org.imageterrier.toolopts;
 import java.io.File;
 import java.io.IOException;
 
+import org.kohsuke.args4j.CmdLineOptionsProvider;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.ProxyOptionHandler;
 import org.openimaj.tools.clusterquantiser.ClusterType;
@@ -15,15 +16,22 @@ import org.openimaj.tools.localfeature.LocalFeatureMode;
  * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
  *
  */
-public enum InputMode {
-	
-	IMAGES,
+public enum InputMode implements CmdLineOptionsProvider {
+	IMAGES {
+		@Override
+		public InputModeOptions getOptions() {
+			return new ImagesModeOptions();
+		}
+	},
 	QUANTISED_FEATURES {
-		
+		@Override
+		public InputModeOptions getOptions() {
+			return new QFModeOptions();
+		}
 	}
 	;
 	
-	public static class InputModeOptions {
+	public abstract static class InputModeOptions {
 		@Option(name = "--quant-file", aliases = "-q", usage = "path to quantiser file", required = false, metaVar = "path")
 		private File quantiserFile;
 		
@@ -54,7 +62,7 @@ public enum InputMode {
 	}
 	
 	public static class QFModeOptions extends InputModeOptions {
-		@Option(name = "--file-extension", aliases = "-fe", usage = "file extension for quantised feature files", required = true, metaVar = "extension")
+		@Option(name = "--file-extension", aliases = "-fe", usage = "file extension for quantised feature files", required = false, metaVar = "extension")
 		private String fileExtension;
 		
 		public String getFileExtension() {

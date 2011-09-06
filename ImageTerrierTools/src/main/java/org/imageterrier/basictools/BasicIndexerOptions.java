@@ -44,7 +44,7 @@ import org.kohsuke.args4j.ProxyOptionHandler;
  * @author Jonathon Hare
  */
 public class BasicIndexerOptions {
-	@Option(name = "--mode", aliases = "-m", usage = "input mode", required = true, metaVar = "mode")
+	@Option(name = "--mode", aliases = "-m", usage = "input mode", required = true, handler=ProxyOptionHandler.class)
 	private InputMode inputMode;
 	private InputModeOptions inputModeOp;
 	

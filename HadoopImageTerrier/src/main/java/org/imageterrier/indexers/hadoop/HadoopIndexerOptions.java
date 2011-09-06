@@ -38,7 +38,7 @@ public class HadoopIndexerOptions {
 	@Option(name = "--feature-class", aliases = "-fc", usage = "Java class of the quantised features", required = true, metaVar = "class")
 	private String featureClass;
 	
-	@Option(name = "--mode", aliases = "-m", usage = "input mode", required = true, metaVar = "mode")
+	@Option(name = "--mode", aliases = "-m", usage = "input mode", required = true, handler=ProxyOptionHandler.class)
 	private InputMode inputMode;
 	private InputModeOptions inputModeOp;
 	

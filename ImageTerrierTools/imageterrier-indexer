@@ -6,4 +6,4 @@
 
 bin=`dirname "$0"`
 
-java -Xshare:off -Xmx6G -Djava.awt.headless=true -Dimageterrier.log.level=debug -XX:-UseGCOverheadLimit -Dbundle.size=1000 -Dmemory.reserved=400000000 -cp "$bin/target/ImageTerrierTools-1.0-SNAPSHOT-jar-with-dependencies.jar" org.imageterrier.basictools.BasicIndexer ${1+"$@"}
+java -Xshare:off -Xmx6G -Djava.awt.headless=true -Dimageterrier.log.level=debug -XX:-UseGCOverheadLimit -Dbundle.size=1000 -Dmemory.reserved=400000000 -cp "$bin/target/ImageTerrierTools-3.5-SNAPSHOT-jar-with-dependencies.jar" org.imageterrier.basictools.BasicIndexer ${1+"$@"}

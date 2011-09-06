@@ -70,11 +70,16 @@ public class BasicTerrierConfig {
 	 */
 	public static String LOG_LEVEL = "imageterrier.log.level";
 	
+	private static boolean isConfigured = false;
+	
 	/**
 	 * This method attempts to aid the circumvention of the terrier ApplicationSetup badness!
 	 * We should really re-write that bit of terrier...
 	 */
-	public static void configure() {
+	public static synchronized void configure() {
+		if (isConfigured)
+			return;
+		
 		try {
 			File tmp = File.createTempFile("terrier-tmp-", ".properties");
 			
@@ -91,6 +96,8 @@ public class BasicTerrierConfig {
 			new DOMConfigurator().doConfigure(new StringReader(DEFAULT_LOG4J_CONFIG.replace("__LEVEL__", System.getProperty(LOG_LEVEL, "warn"))), org.apache.log4j.LogManager.getLoggerRepository());
 			
 			tmp.delete();
+			isConfigured = true;
+			
 		} catch (IOException e) {
 			e.printStackTrace(System.err);
 			System.err.println("Error with terrier configuration");

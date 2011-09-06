@@ -97,7 +97,6 @@ public class BasicIndexer {
 			} else {
 				if (f.getName().endsWith(ext)) {
 					images.add(f);
-					break;
 				}
 			}
 		}
@@ -119,6 +118,8 @@ public class BasicIndexer {
 		if (toolOpts.isVerbose()) System.err.println("Building file list");
 		for (String f : toolOpts.getSearchPaths())
 			findFiles(new File(f), options.getFileExtension());
+		
+		if (toolOpts.isVerbose()) System.err.println("Found " + images.size() + " files");
 		
 		Class<? extends QuantisedLocalFeature<?>> qclass = options.getFeatureType().getFeatureClass() == Keypoint.class ? QuantisedKeypoint.class : QuantisedAffineSimulationKeypoint.class;
 		@SuppressWarnings({ "unchecked", "rawtypes" })

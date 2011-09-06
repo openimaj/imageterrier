@@ -6,4 +6,4 @@
 
 bin=`dirname "$0"`
 
-java -Xmx8G -cp "`ls $bin/target/ImageTerrierTools-*-SNAPSHOT-jar-with-dependencies.jar`" org.imageterrier.basictools.BasicSearcher ${1+"$@"}
+java -Xmx8G -cp "`ls $bin/target/ImageTerrierTools-3.5-SNAPSHOT-jar-with-dependencies.jar`" org.imageterrier.basictools.BasicSearcher ${1+"$@"}
