@@ -139,7 +139,7 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 			}
 			
 			//create document
-			return new QLFDocument(qkeys, key.toString(), null);	
+			return new QLFDocument(qkeys, key.toString().substring(0,20), null);	
 		}
 
 		private static synchronized void loadQuantiser(HadoopIndexerOptions options) throws IOException {
