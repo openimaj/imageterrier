@@ -34,6 +34,7 @@ import java.io.IOException;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.lib.map.MultithreadedMapper;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.imageterrier.hadoop.fs.TerrierHDFSAdaptor;
 import org.imageterrier.hadoop.mapreduce.PositionAwareSplitWrapper;
@@ -87,6 +88,19 @@ public abstract class HadoopIndexerMapper<VALUEIN> extends Mapper<Text, VALUEIN,
 	 */
 	protected abstract ExtensibleSinglePassIndexer createIndexer(Context context) throws IOException;
 	
+	protected String getThreadIndex(Context context) {
+		try {
+			if (context.getMapperClass() == MultithreadedMapper.class) {
+				Thread t = Thread.currentThread();
+				return "" + t.getId();
+			}
+		} catch (ClassNotFoundException e) {
+			System.err.println("Shouldn't get here!");
+			e.printStackTrace(System.err);
+		}
+		return "";
+	}
+	
 	@Override
 	protected void setup(Context context) throws IOException, InterruptedException {
 		TerrierHDFSAdaptor.initialiseHDFSAdaptor(context.getConfiguration());
@@ -101,7 +115,7 @@ public abstract class HadoopIndexerMapper<VALUEIN> extends Mapper<Text, VALUEIN,
 		Path indexDestination = FileOutputFormat.getWorkOutputPath(context);
 		indexDestination.getFileSystem(context.getConfiguration()).mkdirs(indexDestination); 
 		
-		mapTaskID = context.getTaskAttemptID().getTaskID().toString();
+		mapTaskID = context.getTaskAttemptID().getTaskID().toString() + getThreadIndex(context);
 		proxyIndexer.currentIndex = Index.createNewIndex(indexDestination.toString(), mapTaskID);
 		proxyIndexer.maxMemory = Long.parseLong(ApplicationSetup.getProperty("indexing.singlepass.max.postings.memory", "0"));
 
@@ -116,8 +130,7 @@ public abstract class HadoopIndexerMapper<VALUEIN> extends Mapper<Text, VALUEIN,
 		proxyIndexer.emptyDocIndexEntry = (FieldScore.FIELDS_COUNT > 0) ? new FieldDocumentIndexEntry(FieldScore.FIELDS_COUNT) : new SimpleDocumentIndexEntry();
 	}
 
-	protected MetaIndexBuilder createMetaIndexBuilder()
-	{
+	protected MetaIndexBuilder createMetaIndexBuilder() {
 		final String[] forwardMetaKeys = ApplicationSetup.getProperty("indexer.meta.forward.keys", "docno").split("\\s*,\\s*");
 		final int[] metaKeyLengths = Indexer.parseInts(ApplicationSetup.getProperty("indexer.meta.forward.keylens", "20").split("\\s*,\\s*"));
 		//no reverse metadata during main indexing, pick up as separate job later

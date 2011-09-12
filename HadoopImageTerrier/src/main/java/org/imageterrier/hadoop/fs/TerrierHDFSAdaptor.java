@@ -134,7 +134,7 @@ public class TerrierHDFSAdaptor implements FileSystem {
 				.getUserAction().implies(FsAction.READ);
 	}
 	
-	public static void initialiseHDFSAdaptor(Configuration config) throws IOException {
+	public static synchronized void initialiseHDFSAdaptor(Configuration config) throws IOException {
 		Files.addFileSystemCapability(new TerrierHDFSAdaptor(config));
 	}
 }
