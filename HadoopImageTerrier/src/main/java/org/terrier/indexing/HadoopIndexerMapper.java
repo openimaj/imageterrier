@@ -90,7 +90,7 @@ public abstract class HadoopIndexerMapper<VALUEIN> extends Mapper<Text, VALUEIN,
 	
 	protected String getThreadIndex(Context context) {
 		try {
-			if (context.getMapperClass() == MultithreadedMapper.class) {
+			if (context.getMapperClass().equals(MultithreadedMapper.class)) {
 				Thread t = Thread.currentThread();
 				return "" + t.getId();
 			}

@@ -33,20 +33,23 @@ public enum InputMode implements CmdLineOptionsProvider {
 	
 	public abstract static class InputModeOptions {
 		@Option(name = "--quant-file", aliases = "-q", usage = "path to quantiser file", required = false, metaVar = "path")
-		private File quantiserFile;
+		private String quantiserFile;
 		
 		@Option(name = "--quant-type", aliases = "-qt", usage = "Quantiser type. Defaults to AKM (FastKMeans)", required = false, metaVar = "type", handler=ProxyOptionHandler.class)
 		public ClusterType quantiserType = ClusterType.FASTKMEANS;
+		
+		@Option(name = "--quant-exact", aliases = "-qe", usage = "Load the quantiser in exact mode or not", required = false, metaVar = "type", handler=ProxyOptionHandler.class)
+		public boolean quantiserExact = false;
 		
 		@Option(name = "--feature-type", aliases = "-ft", usage = "Feature type. Defaults to plain DoG/SIFT", required = false, metaVar = "type", handler=ProxyOptionHandler.class)
 		public
 		LocalFeatureMode featureType = LocalFeatureMode.SIFT;
 		
-		public File getQuantiserFile() throws IOException {
-			if (quantiserFile == null) {
-				 quantiserFile = File.createTempFile("imageterrier", ".cluster");
-				 quantiserFile.delete();
-			}
+		public String getQuantiserFile() throws IOException {
+//			if (quantiserFile == null) {
+//				 quantiserFile = File.createTempFile("imageterrier", ".cluster");
+//				 quantiserFile.delete();
+//			}
 			
 			return quantiserFile;
 		}
