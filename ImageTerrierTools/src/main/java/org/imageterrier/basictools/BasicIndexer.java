@@ -130,11 +130,11 @@ public class BasicIndexer {
 		}
 		
 		if (toolOpts.isVerbose()) System.err.println("Loading quantiser");
-		options.quantiserType = ClusterType.sniffClusterType(options.getQuantiserFile());
+		options.quantiserType = ClusterType.sniffClusterType(new File(options.getQuantiserFile()));
 		
 		Cluster<?, ?> cluster = null;
 		if (options.quantiserType != null)
-			cluster = IOUtils.read(options.getQuantiserFile(), options.getQuantiserType().getClusterClass());
+			cluster = IOUtils.read(new File(options.getQuantiserFile()), options.getQuantiserType().getClusterClass());
 		
 		return new ProcessData(collection, cluster);
 	}
@@ -161,14 +161,14 @@ public class BasicIndexer {
 
 		//Create or load quantiser
 		Cluster<?,?> cluster;
-		if (options.getQuantiserFile().exists()) {
+		if (new File(options.getQuantiserFile()).exists()) {
 			if (toolOpts.isVerbose()) System.err.println("Loading quantiser");
 			
-			options.quantiserType = ClusterType.sniffClusterType(options.getQuantiserFile());
+			options.quantiserType = ClusterType.sniffClusterType(new File(options.getQuantiserFile()));
 			
 			if (options.quantiserType == null) throw new RuntimeException("Unknown cluster type");
 			
-			cluster = IOUtils.read(options.getQuantiserFile(), options.getQuantiserType().getClusterClass());
+			cluster = IOUtils.read(new File(options.getQuantiserFile()), options.getQuantiserType().getClusterClass());
 		} else {
 			if (toolOpts.isVerbose()) System.err.println("Building quantiser");
 			
@@ -186,7 +186,7 @@ public class BasicIndexer {
 			byte [][] data = ClusterQuantiser.do_getSamples(cqopts);
 			cluster = options.getQuantiserType().create(data);
 			
-			IOUtils.writeBinary(options.getQuantiserFile(), cluster);
+			IOUtils.writeBinary(new File(options.getQuantiserFile()), cluster);
 		}
 		cluster.optimize(false);
 		
