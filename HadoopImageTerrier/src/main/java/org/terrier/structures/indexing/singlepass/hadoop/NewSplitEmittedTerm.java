@@ -355,4 +355,17 @@ public class NewSplitEmittedTerm implements WritableComparable<NewSplitEmittedTe
 			return (initialChar - 97) / partitionSize;
 		}
 	}	
+	
+	public static class SETPartitionerHashedTerm extends Partitioner<NewSplitEmittedTerm, MapEmittedPostingList> {
+		/** Retuns the partition for the specified term and posting list, given the specified
+		 * number of partitions.
+		 */
+		@Override
+		public int getPartition(NewSplitEmittedTerm term, MapEmittedPostingList posting, int numPartitions) {
+			long hc = term.getTerm().hashCode() + Integer.MAX_VALUE;
+			long qc = hc * numPartitions / (2L * Integer.MAX_VALUE);
+			
+			return (int) qc;
+		}
+	}
 }
