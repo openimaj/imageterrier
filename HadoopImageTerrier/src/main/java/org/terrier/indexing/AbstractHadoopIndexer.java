@@ -91,6 +91,7 @@ public abstract class AbstractHadoopIndexer extends Configured implements Tool {
 		//1. load in the input indices
 		final Index[] srcIndices = new Index[numberOfReducers];
 		final boolean[] existsIndices = new boolean[numberOfReducers];
+		boolean anyExists = false;
 		Arrays.fill(existsIndices, true);
 		for(int i=0;i<numberOfReducers;i++)
 		{
@@ -103,8 +104,17 @@ public abstract class AbstractHadoopIndexer extends Configured implements Tool {
 				//remember that this index doesnt exist
 				existsIndices[i] = false;
 				logger.warn("No reduce "+i+" output : no output index ["+index_path+","+(ApplicationSetup.TERRIER_INDEX_PREFIX+"-"+i)+ "]");
+			} else {
+				anyExists = true;
 			}
 		}
+		
+		if (!anyExists) {
+			//none exists. maybe fewer mappers ran, or there was a problem
+			logger.warn("No reduce output found for the " + numberOfReducers + " reducers. Most likely only one reducer actually ran.");
+			return; 
+		}
+		
 		//2. the target index is the first source index
 		Index dest = srcIndices[0];
 
