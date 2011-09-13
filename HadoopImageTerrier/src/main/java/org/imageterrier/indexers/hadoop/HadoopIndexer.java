@@ -29,13 +29,8 @@
 package org.imageterrier.indexers.hadoop;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.LocalFileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
@@ -56,11 +51,9 @@ import org.openimaj.feature.local.LocalFeature;
 import org.openimaj.feature.local.list.LocalFeatureList;
 import org.openimaj.feature.local.list.MemoryLocalFeatureList;
 import org.openimaj.feature.local.quantised.QuantisedLocalFeature;
-import org.openimaj.hadoop.sequencefile.SequenceFileUtility;
 import org.openimaj.hadoop.tools.clusterquantiser.HadoopClusterQuantiserOptions;
 import org.openimaj.io.IOUtils;
 import org.openimaj.ml.clustering.Cluster;
-import org.openimaj.tools.clusterquantiser.ClusterType;
 import org.terrier.indexing.AbstractHadoopIndexer;
 import org.terrier.indexing.Document;
 import org.terrier.indexing.ExtensibleSinglePassIndexer;
@@ -287,12 +280,12 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 
 		if (ranOK) {
 			if (! options.isDocumentPartitionMode()) {
-				if (options.getNumReducers() > 1) {
-					mergeLexiconInvertedFiles(options.getOutputPathString(), options.getNumReducers());
+				if (job.getNumReduceTasks() > 1) {
+					mergeLexiconInvertedFiles(options.getOutputPathString(), job.getNumReduceTasks());
 				}
 			}
 
-			finish(options.getOutputPathString(), options.isDocumentPartitionMode() ? options.getNumReducers() : 1, job.getConfiguration());
+			finish(options.getOutputPathString(), options.isDocumentPartitionMode() ? job.getNumReduceTasks() : 1, job.getConfiguration());
 		}
 
 		System.out.println("Time Taken = "+((System.currentTimeMillis()-time)/1000)+" seconds");
@@ -301,13 +294,14 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 	}
 
 	public static void main(String[] args) throws Exception {
-//		args = new String[] { 
-//				"-t", "BASIC",
-//				"-nr", "1",
-//				"-fc", "QuantisedKeypoint",
-//				"-o", "/Users/jsh2/test.index",
-//				"/Users/jsh2/ukbench-sift-intensity.seq"
-//		};
+		args = new String[] { 
+				"-t", "BASIC",
+				"-nr", "3",
+				"-fc", "QuantisedKeypoint",
+				"-o", "/Users/jsh2/test.index",
+				"-m", "QUANTISED_FEATURES", 
+				"/Users/jsh2/ukbench-sift-intensity-100.seq"
+		};
 		
 		ToolRunner.run(new HadoopIndexer(), args);
 	}
