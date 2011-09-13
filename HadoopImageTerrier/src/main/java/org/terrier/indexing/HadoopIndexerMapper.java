@@ -160,6 +160,7 @@ public abstract class HadoopIndexerMapper<VALUEIN> extends Mapper<Text, VALUEIN,
 		context.setStatus("Currently indexing "+docno);
 		
 		final Document doc = recordToDocument(key, value);
+		if(doc==null) return;
 		
 		indexDocument(doc, context);
 		context.getCounter(Counters.INDEXED_DOCUMENTS).increment(1);

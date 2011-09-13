@@ -42,6 +42,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.partition.HashPartitioner;
 import org.apache.hadoop.util.ToolRunner;
+import org.apache.log4j.Logger;
 import org.imageterrier.basictools.BasicTerrierConfig;
 import org.imageterrier.hadoop.mapreduce.PositionAwareSequenceFileInputFormat;
 import org.imageterrier.locfile.QLFDocument;
@@ -75,6 +76,7 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 		//initialise terrier
 		BasicTerrierConfig.configure();
 	}
+	protected static final Logger logger = Logger.getLogger(HadoopIndexer.class);
 	
 	public static final String INDEXER_ARGS_STRING = "indexer.args";
 
@@ -112,27 +114,38 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 		@SuppressWarnings({ "rawtypes", "unchecked" })
 		private Document processImage(Text key, BytesWritable value) throws IOException {
 			//extract features
-			LocalFeatureList<? extends LocalFeature<?>> features = options.getInputModeOptions().getFeatureType().getKeypointList(value.getBytes());
-			
-			//load quantiser if required
-			loadQuantiser(options);
-			
-			//quantise features
-			LocalFeatureList<QuantisedLocalFeature<?>> qkeys = new MemoryLocalFeatureList<QuantisedLocalFeature<?>>(features.size());
-			if (quantiser.getClusters() instanceof byte[][]) {
-				for (LocalFeature k : features) {
-					int id = ((Cluster<?,byte[]>)quantiser).push_one((byte[])k.getFeatureVector().getVector());
-					qkeys.add(new QuantisedLocalFeature(k.getLocation(), id));
+			LocalFeatureList<? extends LocalFeature<?>> features = null;
+			try{
+				logger.info("Extracting features...");
+				features = options.getInputModeOptions().getFeatureType().getKeypointList(value.getBytes());
+				
+				logger.info("Loading quantiser...");
+				//load quantiser if required
+				loadQuantiser(options);
+				
+				logger.info("Quantising features...");
+				//quantise features
+				LocalFeatureList<QuantisedLocalFeature<?>> qkeys = new MemoryLocalFeatureList<QuantisedLocalFeature<?>>(features.size());
+				if (quantiser.getClusters() instanceof byte[][]) {
+					for (LocalFeature k : features) {
+						int id = ((Cluster<?,byte[]>)quantiser).push_one((byte[])k.getFeatureVector().getVector());
+						qkeys.add(new QuantisedLocalFeature(k.getLocation(), id));
+					}
+				} else {
+					for (LocalFeature k : features) {
+						int id = ((Cluster<?,int[]>)quantiser).push_one((int[])k.getFeatureVector().getVector());
+						qkeys.add(new QuantisedLocalFeature(k.getLocation(), id));
+					}
 				}
-			} else {
-				for (LocalFeature k : features) {
-					int id = ((Cluster<?,int[]>)quantiser).push_one((int[])k.getFeatureVector().getVector());
-					qkeys.add(new QuantisedLocalFeature(k.getLocation(), id));
-				}
+				
+				logger.info("Construcing QLFDocument...");
+				//create document
+				return new QLFDocument(qkeys, key.toString().substring(0,20), null);
 			}
-			
-			//create document
-			return new QLFDocument(qkeys, key.toString().substring(0,20), null);	
+			catch(Throwable e){
+				logger.warn("Skipping image: " + key + " due to: " + e.getMessage());
+				return null;
+			}
 		}
 
 		private static synchronized void loadQuantiser(HadoopIndexerOptions options) throws IOException {
@@ -219,9 +232,14 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 		job.setNumReduceTasks(options.getNumReducers());
 		if (options.getNumReducers() > 1) {
 			if (options.isDocumentPartitionMode())
+			{
 				job.setPartitionerClass(NewSplitEmittedTerm.SETPartitioner.class);
+			}
 			else
-				job.setPartitionerClass(NewSplitEmittedTerm.SETPartitionerLowercaseAlphaTerm.class);
+			{
+//				job.setPartitionerClass(NewSplitEmittedTerm.SETPartitionerLowercaseAlphaTerm.class);
+				job.setPartitionerClass(NewSplitEmittedTerm.SETPartitionerHashedTerm.class);
+			}
 		} else {
 			//for JUnit tests, we seem to need to restore the original partitioner class
 			job.setPartitionerClass(HashPartitioner.class);
@@ -294,14 +312,14 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 	}
 
 	public static void main(String[] args) throws Exception {
-		args = new String[] { 
-				"-t", "BASIC",
-				"-nr", "3",
-				"-fc", "QuantisedKeypoint",
-				"-o", "/Users/jsh2/test.index",
-				"-m", "QUANTISED_FEATURES", 
-				"/Users/jsh2/ukbench-sift-intensity-100.seq"
-		};
+//		args = new String[] { 
+//				"-t", "BASIC",
+//				"-nr", "3",
+//				"-fc", "QuantisedKeypoint",
+//				"-o", "/Users/jsh2/test.index",
+//				"-m", "QUANTISED_FEATURES", 
+//				"/Users/jsh2/ukbench-sift-intensity-100.seq"
+//		};
 		
 		ToolRunner.run(new HadoopIndexer(), args);
 	}

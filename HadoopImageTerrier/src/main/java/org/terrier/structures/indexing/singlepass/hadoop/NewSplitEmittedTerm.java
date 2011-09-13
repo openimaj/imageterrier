@@ -362,8 +362,8 @@ public class NewSplitEmittedTerm implements WritableComparable<NewSplitEmittedTe
 		 */
 		@Override
 		public int getPartition(NewSplitEmittedTerm term, MapEmittedPostingList posting, int numPartitions) {
-			long hc = term.getTerm().hashCode() + Integer.MAX_VALUE;
-			long qc = hc * numPartitions / (2L * Integer.MAX_VALUE);
+			long hc = (long)term.getTerm().hashCode() + (long)Integer.MAX_VALUE;
+			long qc = (hc * (long)numPartitions) / (2L * (long)Integer.MAX_VALUE);
 			
 			return (int) qc;
 		}

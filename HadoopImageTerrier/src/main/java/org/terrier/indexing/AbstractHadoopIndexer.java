@@ -93,6 +93,7 @@ public abstract class AbstractHadoopIndexer extends Configured implements Tool {
 		final boolean[] existsIndices = new boolean[numberOfReducers];
 		boolean anyExists = false;
 		Arrays.fill(existsIndices, true);
+		int firstNonEmpty = -1;
 		for(int i=0;i<numberOfReducers;i++)
 		{
 			srcIndices[i] = Index.createIndex(index_path, ApplicationSetup.TERRIER_INDEX_PREFIX+"-"+i);
@@ -104,8 +105,12 @@ public abstract class AbstractHadoopIndexer extends Configured implements Tool {
 				//remember that this index doesnt exist
 				existsIndices[i] = false;
 				logger.warn("No reduce "+i+" output : no output index ["+index_path+","+(ApplicationSetup.TERRIER_INDEX_PREFIX+"-"+i)+ "]");
+				
 			} else {
 				anyExists = true;
+				if(firstNonEmpty == -1 && srcIndices[i].getIndexStructure(lexiconStructure + "-valuefactory")!=null){
+					firstNonEmpty = i;
+				}
 			}
 		}
 		
@@ -116,7 +121,7 @@ public abstract class AbstractHadoopIndexer extends Configured implements Tool {
 		}
 		
 		//2. the target index is the first source index
-		Index dest = srcIndices[0];
+		Index dest = srcIndices[firstNonEmpty];
 
 		//3. create the new lexicon
 		LexiconOutputStream<String> lexOut = new FSOMapFileLexiconOutputStream(
