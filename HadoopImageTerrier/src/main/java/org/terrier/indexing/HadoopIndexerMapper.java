@@ -55,22 +55,24 @@ import org.terrier.utility.io.WrappedIOException;
 
 public abstract class HadoopIndexerMapper<VALUEIN> extends Mapper<Text, VALUEIN, NewSplitEmittedTerm, MapEmittedPostingList> implements SinglePassIndexerFlushDelegate {
 	/** the underlying indexer object */
-	protected ExtensibleSinglePassIndexer proxyIndexer;
+	protected static ExtensibleSinglePassIndexer proxyIndexer;
 	
 	/** the current map context */
 	protected Context currentContext;
+
+	private static int threadCounter = 0;
 	
 	/** Current map number */
-	protected String mapTaskID;
+	protected static String mapTaskID;
 
 	/** the split number of the map context */
-	protected int splitnum;
+	protected static int splitnum;
 	
 	/** How many flushes have we made */
-	protected int flushNo;
+	protected static int flushNo;
 	
 	/** OutputStream for the the data on the runs (runNo, flushes etc) */
-	protected DataOutputStream runData;
+	protected static DataOutputStream runData;
 	
 	static enum Counters { 
 		INDEXED_DOCUMENTS, INDEXED_EMPTY_DOCUMENTS, INDEXER_FLUSHES, INDEXED_TOKENS, INDEXED_POINTERS;
@@ -88,46 +90,38 @@ public abstract class HadoopIndexerMapper<VALUEIN> extends Mapper<Text, VALUEIN,
 	 */
 	protected abstract ExtensibleSinglePassIndexer createIndexer(Context context) throws IOException;
 	
-	protected String getThreadIndex(Context context) {
-		try {
-			if (((Class<?>)context.getMapperClass()) == ((Class<?>)(MultithreadedMapper.class))) {
-				Thread t = Thread.currentThread();
-				return "" + t.getId();
-			}
-		} catch (ClassNotFoundException e) {
-			System.err.println("Shouldn't get here!");
-			e.printStackTrace(System.err);
-		}
-		return "";
-	}
-	
 	@Override
 	protected void setup(Context context) throws IOException, InterruptedException {
-		TerrierHDFSAdaptor.initialiseHDFSAdaptor(context.getConfiguration());
-		
-		proxyIndexer = createIndexer(context);
-		
-		currentContext = context;
-		splitnum = ((PositionAwareSplitWrapper<?>)context.getInputSplit()).getSplitIndex();
-		
-		proxyIndexer.setFlushDelegate(this);
-		
-		Path indexDestination = FileOutputFormat.getWorkOutputPath(context);
-		indexDestination.getFileSystem(context.getConfiguration()).mkdirs(indexDestination); 
-		
-		mapTaskID = context.getTaskAttemptID().getTaskID().toString() + getThreadIndex(context);
-		proxyIndexer.currentIndex = Index.createNewIndex(indexDestination.toString(), mapTaskID);
-		proxyIndexer.maxMemory = Long.parseLong(ApplicationSetup.getProperty("indexing.singlepass.max.postings.memory", "0"));
+		synchronized(HadoopIndexerMapper.class){
+			currentContext = context;
+			threadCounter ++;
+			if(mapTaskID != null && mapTaskID.equals(context.getTaskAttemptID().getTaskID().toString())){
+				return;
+			}
+			TerrierHDFSAdaptor.initialiseHDFSAdaptor(context.getConfiguration());
+			
+			proxyIndexer = createIndexer(context);
+			splitnum = ((PositionAwareSplitWrapper<?>)context.getInputSplit()).getSplitIndex();
+			
+			proxyIndexer.setFlushDelegate(this);
+			
+			Path indexDestination = FileOutputFormat.getWorkOutputPath(context);
+			indexDestination.getFileSystem(context.getConfiguration()).mkdirs(indexDestination); 
+			
+			mapTaskID = context.getTaskAttemptID().getTaskID().toString();
+			proxyIndexer.currentIndex = Index.createNewIndex(indexDestination.toString(), mapTaskID);
+			proxyIndexer.maxMemory = Long.parseLong(ApplicationSetup.getProperty("indexing.singlepass.max.postings.memory", "0"));
 
-		//during reduce, we dont want to load indices into memory, as we only use them as streams
-		proxyIndexer.currentIndex.setIndexProperty("index.preloadIndices.disabled", "true");
-		runData = new DataOutputStream(Files.writeFileStream(new Path(indexDestination, mapTaskID+".runs").toString()));
-		runData.writeUTF(mapTaskID);
-		
-		proxyIndexer.createMemoryPostings();
-		proxyIndexer.docIndexBuilder = new DocumentIndexBuilder(proxyIndexer.currentIndex, "document");
-		proxyIndexer.metaBuilder = createMetaIndexBuilder();
-		proxyIndexer.emptyDocIndexEntry = (FieldScore.FIELDS_COUNT > 0) ? new FieldDocumentIndexEntry(FieldScore.FIELDS_COUNT) : new SimpleDocumentIndexEntry();
+			//during reduce, we dont want to load indices into memory, as we only use them as streams
+			proxyIndexer.currentIndex.setIndexProperty("index.preloadIndices.disabled", "true");
+			runData = new DataOutputStream(Files.writeFileStream(new Path(indexDestination, mapTaskID+".runs").toString()));
+			runData.writeUTF(mapTaskID);
+			
+			proxyIndexer.createMemoryPostings();
+			proxyIndexer.docIndexBuilder = new DocumentIndexBuilder(proxyIndexer.currentIndex, "document");
+			proxyIndexer.metaBuilder = createMetaIndexBuilder();
+			proxyIndexer.emptyDocIndexEntry = (FieldScore.FIELDS_COUNT > 0) ? new FieldDocumentIndexEntry(FieldScore.FIELDS_COUNT) : new SimpleDocumentIndexEntry();
+		}		
 	}
 
 	protected MetaIndexBuilder createMetaIndexBuilder() {
@@ -166,7 +160,7 @@ public abstract class HadoopIndexerMapper<VALUEIN> extends Mapper<Text, VALUEIN,
 		context.getCounter(Counters.INDEXED_DOCUMENTS).increment(1);
 	}
 	
-	protected void indexDocument(final Document doc, Context context) throws IOException {
+	protected static synchronized <VALUEIN> void indexDocument(final Document doc, Mapper<Text, VALUEIN, NewSplitEmittedTerm, MapEmittedPostingList>.Context context) throws IOException {
 		/* setup for parsing */
 		proxyIndexer.createDocumentPostings();
 		
@@ -230,46 +224,53 @@ public abstract class HadoopIndexerMapper<VALUEIN> extends Mapper<Text, VALUEIN,
 	@Override
 	public void forceFlush() throws IOException
 	{
-		ExtensibleSinglePassIndexer.logger.info("Map "+mapTaskID+", flush requested, containing "+proxyIndexer.numberOfDocsSinceFlush+" documents, flush "+flushNo);
-		
-		if (proxyIndexer.mp == null)
-			throw new IOException("Map flushed before any documents were indexed");
-		
-		proxyIndexer.mp.finish(new NewHadoopRunWriter<VALUEIN>(currentContext, mapTaskID, splitnum, flushNo));
-		runData.writeInt(proxyIndexer.currentId);
-		
-		if (currentContext != null)
-			currentContext.getCounter(Counters.INDEXER_FLUSHES).increment(1);
-		
-		System.gc();
-		
-		proxyIndexer.createMemoryPostings();
-		proxyIndexer.memoryCheck.reset();
-		proxyIndexer.numberOfDocsSinceFlush = 0;
-		proxyIndexer.currentId = 0;
-		flushNo++;
+		synchronized(HadoopIndexerMapper.class){
+			ExtensibleSinglePassIndexer.logger.info("Map "+mapTaskID+", flush requested, containing "+proxyIndexer.numberOfDocsSinceFlush+" documents, flush "+flushNo);
+			
+			if (proxyIndexer.mp == null)
+				throw new IOException("Map flushed before any documents were indexed");
+			
+			proxyIndexer.mp.finish(new NewHadoopRunWriter<VALUEIN>(currentContext, mapTaskID, splitnum, flushNo));
+			runData.writeInt(proxyIndexer.currentId);
+			
+			if (currentContext != null)
+				currentContext.getCounter(Counters.INDEXER_FLUSHES).increment(1);
+			
+			System.gc();
+			
+			proxyIndexer.createMemoryPostings();
+			proxyIndexer.memoryCheck.reset();
+			proxyIndexer.numberOfDocsSinceFlush = 0;
+			proxyIndexer.currentId = 0;
+			flushNo++;
+		}
 	}	
 	
 	@Override
 	protected void cleanup(Context context) throws IOException, InterruptedException {
-		proxyIndexer.forceFlush();
-		proxyIndexer.docIndexBuilder.finishedCollections();
-		proxyIndexer.currentIndex.setIndexProperty("index.inverted.fields.count", ""+FieldScore.FIELDS_COUNT);
-		if (FieldScore.FIELDS_COUNT > 0)
-		{
-			proxyIndexer.currentIndex.addIndexStructure("document-factory", FieldDocumentIndexEntry.Factory.class.getName(), "java.lang.String", "${index.inverted.fields.count}");
+		synchronized(HadoopIndexerMapper.class){
+			currentContext = context;
+			threadCounter --;
+			if(threadCounter > 0) return;
+			proxyIndexer.forceFlush();
+			proxyIndexer.docIndexBuilder.finishedCollections();
+			proxyIndexer.currentIndex.setIndexProperty("index.inverted.fields.count", ""+FieldScore.FIELDS_COUNT);
+			if (FieldScore.FIELDS_COUNT > 0)
+			{
+				proxyIndexer.currentIndex.addIndexStructure("document-factory", FieldDocumentIndexEntry.Factory.class.getName(), "java.lang.String", "${index.inverted.fields.count}");
+			}
+			else
+			{
+				proxyIndexer.currentIndex.addIndexStructure("document-factory", SimpleDocumentIndexEntry.Factory.class.getName(), "", "");
+			}
+			proxyIndexer.metaBuilder.close();
+			proxyIndexer.currentIndex.flush();
+			proxyIndexer.currentIndex.close();
+			runData.writeInt(-1);
+			runData.writeInt(proxyIndexer.numberOfDocuments);
+			runData.writeInt(splitnum);
+			runData.close();
+			ExtensibleSinglePassIndexer.logger.info("Map "+mapTaskID+ " finishing, indexed "+proxyIndexer.numberOfDocuments+ " in "+(flushNo-1)+" flushes");
 		}
-		else
-		{
-			proxyIndexer.currentIndex.addIndexStructure("document-factory", SimpleDocumentIndexEntry.Factory.class.getName(), "", "");
-		}
-		proxyIndexer.metaBuilder.close();
-		proxyIndexer.currentIndex.flush();
-		proxyIndexer.currentIndex.close();
-		runData.writeInt(-1);
-		runData.writeInt(proxyIndexer.numberOfDocuments);
-		runData.writeInt(splitnum);
-		runData.close();
-		ExtensibleSinglePassIndexer.logger.info("Map "+mapTaskID+ " finishing, indexed "+proxyIndexer.numberOfDocuments+ " in "+(flushNo-1)+" flushes");
 	}
 }

@@ -93,7 +93,7 @@ public abstract class AbstractHadoopIndexer extends Configured implements Tool {
 		final boolean[] existsIndices = new boolean[numberOfReducers];
 		boolean anyExists = false;
 		Arrays.fill(existsIndices, true);
-		int firstNonEmpty = -1;
+		int firstNonEmpty = 0;
 		for(int i=0;i<numberOfReducers;i++)
 		{
 			srcIndices[i] = Index.createIndex(index_path, ApplicationSetup.TERRIER_INDEX_PREFIX+"-"+i);
@@ -108,11 +108,13 @@ public abstract class AbstractHadoopIndexer extends Configured implements Tool {
 				
 			} else {
 				anyExists = true;
-				if(firstNonEmpty == -1 && srcIndices[i].getIndexStructure(lexiconStructure + "-valuefactory")!=null){
-					firstNonEmpty = i;
-				}
+//				if(firstNonEmpty == -1 ){
+//					firstNonEmpty = i;
+//				}
 			}
 		}
+		
+		logger.warn("Empty indices: " + Arrays.toString(existsIndices));
 		
 		if (!anyExists) {
 			//none exists. maybe fewer mappers ran, or there was a problem
@@ -192,10 +194,11 @@ public abstract class AbstractHadoopIndexer extends Configured implements Tool {
 		//8. rearrange indices into desired layout
 
 		//rename target index
-		IndexUtil.renameIndex(index_path, ApplicationSetup.TERRIER_INDEX_PREFIX+"-0", index_path, ApplicationSetup.TERRIER_INDEX_PREFIX);
+		IndexUtil.renameIndex(index_path, ApplicationSetup.TERRIER_INDEX_PREFIX+"-"+firstNonEmpty, index_path, ApplicationSetup.TERRIER_INDEX_PREFIX);
 		//delete other source indices
-		for(int i=1;i<numberOfReducers;i++)
+		for(int i=0;i<numberOfReducers;i++)
 		{
+			if(i==firstNonEmpty)continue;
 			if (existsIndices[i])
 				IndexUtil.deleteIndex(index_path, ApplicationSetup.TERRIER_INDEX_PREFIX+"-" + i);
 		}

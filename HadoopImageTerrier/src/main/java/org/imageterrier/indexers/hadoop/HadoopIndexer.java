@@ -84,8 +84,8 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 	 * The mapper implementation
 	 */
 	static class IndexerMapper extends HadoopIndexerMapper<BytesWritable> {
-		protected Class<? extends QuantisedLocalFeature<?>> featureClass;
-		protected HadoopIndexerOptions options;
+		protected static Class<? extends QuantisedLocalFeature<?>> featureClass;
+		protected static HadoopIndexerOptions options;
 		private static Cluster<?, ?> quantiser;
 
 		@Override
@@ -116,14 +116,15 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 			//extract features
 			LocalFeatureList<? extends LocalFeature<?>> features = null;
 			try{
-				logger.info("Extracting features...");
+				logger.warn("Extracting features...");
 				features = options.getInputModeOptions().getFeatureType().getKeypointList(value.getBytes());
 				
-				logger.info("Loading quantiser...");
+				logger.warn("Found features:" + features .size());
+				logger.warn("Loading quantiser...");
 				//load quantiser if required
 				loadQuantiser(options);
 				
-				logger.info("Quantising features...");
+				logger.warn("Quantising features...");
 				//quantise features
 				LocalFeatureList<QuantisedLocalFeature<?>> qkeys = new MemoryLocalFeatureList<QuantisedLocalFeature<?>>(features.size());
 				if (quantiser.getClusters() instanceof byte[][]) {
@@ -138,7 +139,7 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 					}
 				}
 				
-				logger.info("Construcing QLFDocument...");
+				logger.warn("Construcing QLFDocument...");
 				//create document
 				return new QLFDocument(qkeys, key.toString().substring(0,20), null);
 			}
@@ -200,7 +201,7 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 			job.setMapperClass(IndexerMapper.class);
 		} else {
 			job.setMapperClass(MultithreadedMapper.class);
-			((JobConf)job.getConfiguration()).setNumTasksToExecutePerJvm(-1);
+//			((JobConf)job.getConfiguration()).setNumTasksToExecutePerJvm(-1);
 			MultithreadedMapper.setNumberOfThreads(job, options.getMultithread());
 			MultithreadedMapper.setMapperClass(job, IndexerMapper.class);
 		}
@@ -312,14 +313,15 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 	}
 
 	public static void main(String[] args) throws Exception {
-//		args = new String[] { 
-//				"-t", "BASIC",
-//				"-nr", "3",
-//				"-fc", "QuantisedKeypoint",
-//				"-o", "/Users/jsh2/test.index",
-//				"-m", "QUANTISED_FEATURES", 
-//				"/Users/jsh2/ukbench-sift-intensity-100.seq"
-//		};
+		args = new String[] { 
+				"-t", "BASIC",
+				"-nr", "3",
+				"-fc", "QuantisedKeypoint",
+				"-o", "/Users/ss/test.index",
+				"-m", "QUANTISED_FEATURES", 
+				"-j", "2", 
+				"hdfs://seurat.ecs.soton.ac.uk/data/quantised_features/ukbench-sift-intensity-100.seq"
+		};
 		
 		ToolRunner.run(new HadoopIndexer(), args);
 	}
