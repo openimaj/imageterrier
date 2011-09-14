@@ -29,6 +29,12 @@
 package org.imageterrier.indexers.hadoop;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.BytesWritable;
@@ -37,15 +43,16 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
-import org.apache.hadoop.mapreduce.lib.map.MultithreadedMapper;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.partition.HashPartitioner;
+import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
 import org.imageterrier.basictools.BasicTerrierConfig;
 import org.imageterrier.hadoop.mapreduce.PositionAwareSequenceFileInputFormat;
 import org.imageterrier.locfile.QLFDocument;
+import org.imageterrier.toolopts.InputMode;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.openimaj.feature.local.LocalFeature;
@@ -79,14 +86,13 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 	protected static final Logger logger = Logger.getLogger(HadoopIndexer.class);
 	
 	public static final String INDEXER_ARGS_STRING = "indexer.args";
-
+	
 	/**
-	 * The mapper implementation
+	 * The mapper implementation for direct quantised feature indexing
 	 */
-	static class IndexerMapper extends HadoopIndexerMapper<BytesWritable> {
+	static class QFIndexerMapper extends HadoopIndexerMapper<BytesWritable> {
 		protected Class<? extends QuantisedLocalFeature<?>> featureClass;
 		protected HadoopIndexerOptions options;
-		private static Cluster<?, ?> quantiser;
 
 		@Override
 		protected ExtensibleSinglePassIndexer createIndexer(Context context) throws IOException {
@@ -96,32 +102,107 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 			return options.getIndexType().getIndexer(null, null);
 		}
 
+		@SuppressWarnings({ "unchecked", "rawtypes" })
+		@Override
+		protected Document recordToDocument(Text key, BytesWritable value) throws IOException {
+			return new QLFDocument(value.getBytes(), featureClass, key.toString(), null);
+		}
+	}
+
+	/**
+	 * Mapper implementation that uses multiple threads to process
+	 * images into visual terms and then emits them to the
+	 * indexer
+	 */
+	static class ImageIndexerMapper extends HadoopIndexerMapper<BytesWritable> {
+		protected Class<? extends QuantisedLocalFeature<?>> featureClass;
+		protected HadoopIndexerOptions options;
+		private ExecutorService service;
+		private static Cluster<?, ?> quantiser;
+		
+		@Override
+		protected void map(Text key, BytesWritable value, final Context context) throws IOException, InterruptedException {
+			final Text innerkey = new Text(key.toString());
+			final BytesWritable innervalue = new BytesWritable(Arrays.copyOf(value.getBytes(), value.getLength()));
+			 
+			Callable<Boolean> r = new Callable<Boolean>() {
+				@Override
+				public Boolean call() throws IOException {
+					final String docno = innerkey.toString();
+					
+					synchronized (ImageIndexerMapper.this) {
+						System.out.println("Processing " + docno);
+						context.setStatus("Currently indexing "+docno);
+					}
+					
+					final Document doc = recordToDocument(innerkey, innervalue);
+					if(doc==null) return false;
+					
+					synchronized (ImageIndexerMapper.this) {
+						System.out.println("DocNo ->" + docno + " " + ((QLFDocument)doc).getEntries().size() + " Features");
+						
+						indexDocument(doc, context);
+						context.getCounter(Counters.INDEXED_DOCUMENTS).increment(1);
+					}
+					return true;
+				}
+			};
+			
+			service.submit(r);
+		}
+		
+		@Override
+		protected void cleanup(Context context) throws IOException, InterruptedException {
+			service.shutdown();
+			//logger.info("Waiting for mapper threads to finish");
+			System.out.println("Waiting for mapper threads to finish");
+			service.awaitTermination(1, TimeUnit.DAYS);
+			System.out.println("Mapper threads finished. Cleaning up.");
+			super.cleanup(context);
+		}
+		
+		@Override
+		protected ExtensibleSinglePassIndexer createIndexer(Context context) throws IOException {
+			options = getOptions(context.getConfiguration());
+						
+			featureClass = options.getFeatureClass();
+			
+			//load quantiser if required
+			loadQuantiser(options);
+			
+			//set up threadpool
+			int nThreads = options.getMultithread();
+			service =  new ThreadPoolExecutor(nThreads, nThreads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(nThreads) {
+				//the ThreadPoolExecutor calls offer() on the backing queue, which unfortunately
+				//doesn't block, and we end up getting exceptions because the job could not
+				//be executed. This works around the problem by making offer() block (by calling put()). 
+				private static final long serialVersionUID = 1L;
+
+				@Override
+			    public boolean offer(Runnable e)
+			    {
+			        // turn offer() and add() into a blocking calls (unless interrupted)
+			        try {
+			            put(e);
+			            return true;
+			        } catch(InterruptedException ie) {
+			            Thread.currentThread().interrupt();
+			        }
+			        return false;
+			    }
+			});
+			
+			return options.getIndexType().getIndexer(null, null);
+		}
+
 		@SuppressWarnings({ "rawtypes", "unchecked" })
 		@Override
 		protected Document recordToDocument(Text key, BytesWritable value) throws IOException {
-			switch (options.getInputMode()) {
-			case QUANTISED_FEATURES:
-				return new QLFDocument(value.getBytes(), featureClass, key.toString(), null);
-			case IMAGES:
-				return processImage(key, value);
-			default:
-				throw new RuntimeException("Unsupported mode");
-			}
-		}
-		
-		
-		
-		@SuppressWarnings({ "rawtypes", "unchecked" })
-		private Document processImage(Text key, BytesWritable value) throws IOException {
 			//extract features
 			LocalFeatureList<? extends LocalFeature<?>> features = null;
 			try{
 				logger.info("Extracting features...");
 				features = options.getInputModeOptions().getFeatureType().getKeypointList(value.getBytes());
-				
-				logger.info("Loading quantiser...");
-				//load quantiser if required
-				loadQuantiser(options);
 				
 				logger.info("Quantising features...");
 				//quantise features
@@ -140,7 +221,7 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 				
 				logger.info("Construcing QLFDocument...");
 				//create document
-				return new QLFDocument(qkeys, key.toString().substring(0,20), null);
+				return new QLFDocument(qkeys, key.toString().substring(0,Math.min(key.getLength(), 20)), null); //FIXME sort out key length
 			}
 			catch(Throwable e){
 				logger.warn("Skipping image: " + key + " due to: " + e.getMessage());
@@ -196,13 +277,11 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 		Job job = new Job(getConf());
 		job.setJobName("terrierIndexing");
 
-		if (options.getMultithread() <= 0) {
-			job.setMapperClass(IndexerMapper.class);
+		if (options.getInputMode() == InputMode.QUANTISED_FEATURES) {
+			job.setMapperClass(QFIndexerMapper.class);
 		} else { 
-			job.setMapperClass(MultithreadedMapper.class);
+			job.setMapperClass(ImageIndexerMapper.class);
 			((JobConf)job.getConfiguration()).setNumTasksToExecutePerJvm(-1);
-			MultithreadedMapper.setNumberOfThreads(job, options.getMultithread());
-			MultithreadedMapper.setMapperClass(job, IndexerMapper.class);
 		}
 		job.setReducerClass(IndexerReducer.class);
 
@@ -314,11 +393,13 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 	public static void main(String[] args) throws Exception {
 //		args = new String[] { 
 //				"-t", "BASIC",
-//				"-nr", "3",
+//				"-j", "4",
+//				"-nr", "1",
 //				"-fc", "QuantisedKeypoint",
 //				"-o", "/Users/jsh2/test.index",
-//				"-m", "QUANTISED_FEATURES", 
-//				"/Users/jsh2/ukbench-sift-intensity-100.seq"
+//				"-m", "IMAGES", 
+//				"-q", "hdfs://seurat.ecs.soton.ac.uk/data/codebooks/small-10.seq/final",
+//				"hdfs://seurat.ecs.soton.ac.uk/data/image-net-timetests/image-net-10.seq"
 //		};
 		
 		ToolRunner.run(new HadoopIndexer(), args);

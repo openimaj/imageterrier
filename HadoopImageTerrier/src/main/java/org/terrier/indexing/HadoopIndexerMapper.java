@@ -72,7 +72,7 @@ public abstract class HadoopIndexerMapper<VALUEIN> extends Mapper<Text, VALUEIN,
 	/** OutputStream for the the data on the runs (runNo, flushes etc) */
 	protected DataOutputStream runData;
 	
-	static enum Counters {  
+	public static enum Counters {  
 		INDEXED_DOCUMENTS, INDEXED_EMPTY_DOCUMENTS, INDEXER_FLUSHES, INDEXED_TOKENS, INDEXED_POINTERS;
 	};
 	
@@ -248,7 +248,7 @@ public abstract class HadoopIndexerMapper<VALUEIN> extends Mapper<Text, VALUEIN,
 		proxyIndexer.numberOfDocsSinceFlush = 0;
 		proxyIndexer.currentId = 0;
 		flushNo++;
-	}	
+	}
 	
 	@Override
 	protected void cleanup(Context context) throws IOException, InterruptedException {

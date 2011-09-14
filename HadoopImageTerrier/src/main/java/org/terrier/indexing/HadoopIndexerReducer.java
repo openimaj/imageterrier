@@ -338,7 +338,7 @@ public abstract class HadoopIndexerReducer extends Reducer<NewSplitEmittedTerm, 
 			ExtensibleSinglePassIndexer.logger.info("Run data file "+ file.getPath().toString()+" has length "+Files.length(file.getPath().toString()));
 			runDataIn = new DataInputStream(Files.openFileStream(file.getPath().toString()));
 			tempHRD = new MapData(runDataIn);
-			//check to see if this file contaned our split information
+			//check to see if this file contained our split information
 			if (mutipleIndices && partitionChecker.calculatePartition(tempHRD.getSplitnum(), context.getNumReduceTasks()) != thisPartition)
 				continue;
 			

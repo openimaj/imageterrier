@@ -31,6 +31,7 @@ package org.imageterrier.basictools;
 import java.io.File;
 import java.io.IOException;
 
+import java.util.Arrays;
 import java.util.Map.Entry;
 
 import org.kohsuke.args4j.CmdLineException;
@@ -79,6 +80,8 @@ public class IndexStats {
 					
 					Lexicon<String> lexicon = index.getLexicon();
 					
+					System.out.println(Arrays.toString(index.getMetaIndex().getAllItems(docid)));
+					
 					for (Entry<String, LexiconEntry> le : lexicon) {
 						IterablePosting posting = index.getInvertedIndex().getPostings((BitIndexPointer) le.getValue());
 						
@@ -91,6 +94,31 @@ public class IndexStats {
 					System.err.println("Either docid or both key and value must be given.");
 				}
 			}
+		},
+		COUNT {
+
+			@Override
+			public void execute(Index index) throws IOException {
+				int ndocs = index.getDocumentIndex().getNumberOfDocuments();
+				
+				Lexicon<String> lexicon = index.getLexicon();
+				
+				for (int i=0; i<ndocs; i++) {
+					int count = 0;
+					
+					for (Entry<String, LexiconEntry> le : lexicon) {
+						IterablePosting posting = index.getInvertedIndex().getPostings((BitIndexPointer) le.getValue());
+						
+						while (posting.next() != IterablePosting.EOL) {
+							if (posting.getId() == i)
+								count += posting.getFrequency() ;
+						}
+					}
+					
+					System.out.println(index.getMetaIndex().getItem("docno", i) + " " + index.getDocumentIndex().getDocumentEntry(i).getDocumentLength() + " " + count);
+				}
+			}
+			
 		}
 		;
 		
@@ -111,9 +139,7 @@ public class IndexStats {
 	Index index;
 	
 	public void execute() throws IOException {
-		String name = index_file.substring(index_file.lastIndexOf(File.separator) + 1);
-		name = name.substring(0, name.indexOf("."));
-		index = Index.createIndex(index_file, name);
+		index = Index.createIndex(index_file, "index");
 		
 		mode.execute(index);
 	}

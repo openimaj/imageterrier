@@ -1,6 +1,5 @@
 package org.imageterrier.toolopts;
 
-import java.io.File;
 import java.io.IOException;
 
 import org.kohsuke.args4j.CmdLineOptionsProvider;

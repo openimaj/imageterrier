@@ -42,7 +42,7 @@ public class HadoopIndexerOptions {
 	private InputMode inputMode;
 	private InputModeOptions inputModeOp;
 	
-	@Option(name = "--multithread", aliases = "-j", usage = "enable multithread mapper mode with given number of threads. 0 or less disables.", required = false, metaVar = "threads")
+	@Option(name = "--multithread", aliases = "-j", usage = "enable multithreaded feature extraction with given number of threads. 0 or will use hosts number of procs. ONLY FOR IMAGES MODE.", required = false, metaVar = "threads")
 	int multithread = 0;
 	
 	@Argument(required = true)
@@ -133,6 +133,8 @@ public class HadoopIndexerOptions {
 	 * @return the multithread
 	 */
 	public int getMultithread() {
+		if (multithread <= 0)
+			return Runtime.getRuntime().availableProcessors();
 		return multithread;
 	}
 }
