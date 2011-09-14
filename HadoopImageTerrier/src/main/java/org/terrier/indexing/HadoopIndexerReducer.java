@@ -116,9 +116,6 @@ public abstract class HadoopIndexerReducer extends Reducer<NewSplitEmittedTerm, 
 		proxyIndexer.currentIndex = Index.createNewIndex(proxyIndexer.path, proxyIndexer.prefix);
 		
 		proxyIndexer.merger = createRunMerger();
-		
-		LinkedList<MapData> runData = loadRunData(context);
-    	startReduce(runData, context);
 	}
 	
 	/**
@@ -142,6 +139,11 @@ public abstract class HadoopIndexerReducer extends Reducer<NewSplitEmittedTerm, 
 	
 	@Override
 	protected void reduce(NewSplitEmittedTerm key, Iterable<MapEmittedPostingList> values, Context context) throws IOException, InterruptedException {
+		if (reduceCount == 0) {
+			LinkedList<MapData> runData = loadRunData(context);
+	    	startReduce(runData, context);
+		}
+		
 		reduceCount ++;
 		
 		String term = key.getTerm().trim();
@@ -168,8 +170,14 @@ public abstract class HadoopIndexerReducer extends Reducer<NewSplitEmittedTerm, 
 	protected void cleanup(Context context) throws IOException, InterruptedException {
 		if (reduceCount<=0)
 		{
-			ExtensibleSinglePassIndexer.logger.warn("No terms were input, skipping reduce close");
-			return;
+			if(reduceId!=0){
+				ExtensibleSinglePassIndexer.logger.warn("No terms were input, skipping reduce close");
+				return;
+			}
+			else{
+				LinkedList<MapData> runData = loadRunData(context);
+		    	startReduce(runData, context);
+			}
 		}
 		
 		//generate final index structures
@@ -205,7 +213,7 @@ public abstract class HadoopIndexerReducer extends Reducer<NewSplitEmittedTerm, 
 		proxyIndexer.currentIndex.setIndexProperty("num.Terms",""+ lexstream.getNumberOfTermsWritten() );
 		proxyIndexer.currentIndex.setIndexProperty("num.Tokens",""+lexstream.getNumberOfTokensWritten() );
 		proxyIndexer.currentIndex.setIndexProperty("num.Pointers",""+lexstream.getNumberOfPointersWritten() );
-		proxyIndexer.finishedInvertedIndexBuild();
+		if(reduceCount > 0) proxyIndexer.finishedInvertedIndexBuild();
 		if (FieldScore.FIELDS_COUNT > 0)
 			proxyIndexer.currentIndex.addIndexStructure("lexicon-valuefactory", FieldLexiconEntry.Factory.class.getName(), "java.lang.String", "${index.inverted.fields.count}");
 		
