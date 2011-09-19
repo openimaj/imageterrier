@@ -46,7 +46,6 @@ import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.partition.HashPartitioner;
-import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
 import org.imageterrier.basictools.BasicTerrierConfig;
@@ -130,16 +129,16 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 				public Boolean call() throws IOException {
 					final String docno = innerkey.toString();
 					
-					synchronized (ImageIndexerMapper.this) {
-						System.out.println("Processing " + docno);
-						context.setStatus("Currently indexing "+docno);
-					}
-					
 					final Document doc = recordToDocument(innerkey, innervalue);
 					if(doc==null) return false;
 					
+					long t1 = System.nanoTime();
 					synchronized (ImageIndexerMapper.this) {
-						System.out.println("DocNo ->" + docno + " " + ((QLFDocument)doc).getEntries().size() + " Features");
+						long t2 = System.nanoTime();
+						
+						System.out.println("Spent " + (t2-t1) + "ns waiting for lock!");
+						
+						context.setStatus("Currently indexing "+docno);
 						
 						indexDocument(doc, context);
 						context.getCounter(Counters.INDEXED_DOCUMENTS).increment(1);
@@ -154,10 +153,9 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 		@Override
 		protected void cleanup(Context context) throws IOException, InterruptedException {
 			service.shutdown();
-			//logger.info("Waiting for mapper threads to finish");
-			System.out.println("Waiting for mapper threads to finish");
+			logger.info("Waiting for mapper threads to finish");
 			service.awaitTermination(1, TimeUnit.DAYS);
-			System.out.println("Mapper threads finished. Cleaning up.");
+			logger.info("Mapper threads finished. Cleaning up.");
 			super.cleanup(context);
 		}
 		
@@ -281,7 +279,6 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 			job.setMapperClass(QFIndexerMapper.class);
 		} else { 
 			job.setMapperClass(ImageIndexerMapper.class);
-			((JobConf)job.getConfiguration()).setNumTasksToExecutePerJvm(-1);
 		}
 		job.setReducerClass(IndexerReducer.class);
 
