@@ -45,6 +45,9 @@ public class HadoopIndexerOptions {
 	@Option(name = "--multithread", aliases = "-j", usage = "enable multithreaded feature extraction with given number of threads. 0 or will use hosts number of procs. ONLY FOR IMAGES MODE.", required = false, metaVar = "threads")
 	int multithread = 0;
 	
+	@Option(name = "--shard-per-thread", aliases = "-spt", usage = "Allow each thread to produce a shard, rather than sharing one accross threads. ONLY FOR IMAGES MODE WITH MULTITHREADING.", required = false)
+	boolean shardPerThread = false;
+	
 	@Argument(required = true)
 	private List<String> inputPaths = new ArrayList<String>();
 

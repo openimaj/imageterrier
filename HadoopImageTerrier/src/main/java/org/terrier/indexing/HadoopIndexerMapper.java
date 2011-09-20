@@ -34,7 +34,6 @@ import java.io.IOException;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.lib.map.MultithreadedMapper;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.imageterrier.hadoop.fs.TerrierHDFSAdaptor;
 import org.imageterrier.hadoop.mapreduce.PositionAwareSplitWrapper;
@@ -87,18 +86,13 @@ public abstract class HadoopIndexerMapper<VALUEIN> extends Mapper<Text, VALUEIN,
 	 * @throws IOException 
 	 */
 	protected abstract ExtensibleSinglePassIndexer createIndexer(Context context) throws IOException;
+		
+	protected int getSplitNum(Context context) {
+		return ((PositionAwareSplitWrapper<?>)context.getInputSplit()).getSplitIndex();
+	}
 	
-	protected String getThreadIndex(Context context) {
-		try {
-			if (((Class<?>)context.getMapperClass()) == ((Class<?>)(MultithreadedMapper.class))) {
-				Thread t = Thread.currentThread();
-				return "" + t.getId();
-			}
-		} catch (ClassNotFoundException e) {
-			System.err.println("Shouldn't get here!");
-			e.printStackTrace(System.err);
-		}
-		return "";
+	protected String getTaskID(Context context) {
+		return context.getTaskAttemptID().getTaskID().toString();
 	}
 	
 	@Override
@@ -108,14 +102,14 @@ public abstract class HadoopIndexerMapper<VALUEIN> extends Mapper<Text, VALUEIN,
 		proxyIndexer = createIndexer(context);
 		
 		currentContext = context;
-		splitnum = ((PositionAwareSplitWrapper<?>)context.getInputSplit()).getSplitIndex();
+		splitnum = getSplitNum(context);
 		
 		proxyIndexer.setFlushDelegate(this);
 		
 		Path indexDestination = FileOutputFormat.getWorkOutputPath(context);
 		indexDestination.getFileSystem(context.getConfiguration()).mkdirs(indexDestination); 
 		
-		mapTaskID = context.getTaskAttemptID().getTaskID().toString() + getThreadIndex(context);
+		mapTaskID = getTaskID(context);
 		proxyIndexer.currentIndex = Index.createNewIndex(indexDestination.toString(), mapTaskID);
 		proxyIndexer.maxMemory = Long.parseLong(ApplicationSetup.getProperty("indexing.singlepass.max.postings.memory", "0"));
 

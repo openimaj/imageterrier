@@ -28,6 +28,8 @@
  */
 package org.imageterrier.indexers.hadoop;
 
+import gnu.trove.TLongArrayList;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.concurrent.Callable;
@@ -39,10 +41,10 @@ import java.util.concurrent.TimeUnit;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
+import org.apache.hadoop.mapreduce.lib.map.MultithreadedMapper;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.partition.HashPartitioner;
@@ -50,6 +52,7 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
 import org.imageterrier.basictools.BasicTerrierConfig;
 import org.imageterrier.hadoop.mapreduce.PositionAwareSequenceFileInputFormat;
+import org.imageterrier.hadoop.mapreduce.PositionAwareSplitWrapper;
 import org.imageterrier.locfile.QLFDocument;
 import org.imageterrier.toolopts.InputMode;
 import org.kohsuke.args4j.CmdLineException;
@@ -108,6 +111,109 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 		}
 	}
 
+	/**
+	 * Mapper implementation for directly processing images, that is safe to use with a 
+	 * MultithreadedMapper. Each MultithreadedMapper thread will produce its own index.
+	 */
+	static class MTImageIndexerMapper extends HadoopIndexerMapper<BytesWritable> {
+		protected static Class<? extends QuantisedLocalFeature<?>> featureClass;
+		protected static HadoopIndexerOptions options;
+		private static Cluster<?, ?> quantiser;
+		private static TLongArrayList threads = new TLongArrayList();
+		private int threadID;
+		
+		private static synchronized ExtensibleSinglePassIndexer setupIndexer(Context context) throws IOException {
+			if (quantiser == null) {
+				options = getOptions(context.getConfiguration());
+				
+				featureClass = options.getFeatureClass();
+				
+				System.out.println("Loading codebook...");
+				String codebookURL = options.getInputModeOptions().getQuantiserFile();
+				options.getInputModeOptions().quantiserType = HadoopClusterQuantiserOptions.sniffClusterType(codebookURL);
+				
+				if (options.getInputModeOptions().quantiserType != null)
+					quantiser = IOUtils.read(HadoopClusterQuantiserOptions.getClusterInputStream(codebookURL), options.getInputModeOptions().getQuantiserType().getClusterClass());
+				quantiser.optimize(options.getInputModeOptions().quantiserExact);
+				System.out.println("Done!");
+			}
+			return options.getIndexType().getIndexer(null, null);
+		}
+		
+		@Override
+		protected ExtensibleSinglePassIndexer createIndexer(Context context) throws IOException {
+			synchronized (MTImageIndexerMapper.class) {
+				long id = Thread.currentThread().getId();
+				if (!threads.contains(id)) {
+					threads.add(id);
+					this.threadID = threads.indexOf(id);
+				}
+			}
+			
+			return setupIndexer(context);
+		}
+
+		@Override
+		protected int getSplitNum(Context context) {
+			//Splitno is required by the reducer to be unique per mapper (in particular in the .runs files)
+			//we modify the splitnos for each thread to allow this to work
+			try {
+				if (((Class<?>)context.getMapperClass()) == ((Class<?>)(MultithreadedMapper.class))) {
+					int sidx = ((PositionAwareSplitWrapper<?>)context.getInputSplit()).getSplitIndex();
+					return (sidx * MultithreadedMapper.getNumberOfThreads(context)) + threadID;
+				}
+			} catch (ClassNotFoundException e) {}
+			return ((PositionAwareSplitWrapper<?>)context.getInputSplit()).getSplitIndex();
+		}
+		
+		@Override
+		protected String getTaskID(Context context) {
+			//the task id is used to name the shard. we modify it per thread to allow each thread to
+			//work on its own shard.
+			try {
+				if (((Class<?>)context.getMapperClass()) == ((Class<?>)(MultithreadedMapper.class))) {
+					return context.getTaskAttemptID().getTaskID().toString() + threadID;
+				}
+			} catch (ClassNotFoundException e) {}
+			return context.getTaskAttemptID().getTaskID().toString();
+		}
+		
+		@SuppressWarnings({ "unchecked", "rawtypes" })
+		@Override
+		protected Document recordToDocument(Text key, BytesWritable value) throws IOException {
+			//extract features
+			LocalFeatureList<? extends LocalFeature<?>> features = null;
+			try{
+				logger.info("Extracting features...");
+				features = options.getInputModeOptions().getFeatureType().getKeypointList(value.getBytes());
+				
+				logger.info("Quantising features...");
+				//quantise features
+				LocalFeatureList<QuantisedLocalFeature<?>> qkeys = new MemoryLocalFeatureList<QuantisedLocalFeature<?>>(features.size());
+				if (quantiser.getClusters() instanceof byte[][]) {
+					for (LocalFeature k : features) {
+						int id = ((Cluster<?,byte[]>)quantiser).push_one((byte[])k.getFeatureVector().getVector());
+						qkeys.add(new QuantisedLocalFeature(k.getLocation(), id));
+					}
+				} else {
+					for (LocalFeature k : features) {
+						int id = ((Cluster<?,int[]>)quantiser).push_one((int[])k.getFeatureVector().getVector());
+						qkeys.add(new QuantisedLocalFeature(k.getLocation(), id));
+					}
+				}
+				
+				logger.info("Construcing QLFDocument...");
+				//create document
+				return new QLFDocument(qkeys, key.toString().substring(0,Math.min(key.getLength(), 20)), null); //FIXME sort out key length
+			}
+			catch(Throwable e){
+				logger.warn("Skipping image: " + key + " due to: " + e.getMessage());
+				return null;
+			}
+		}
+		
+	}
+	
 	/**
 	 * Mapper implementation that uses multiple threads to process
 	 * images into visual terms and then emits them to the
@@ -278,8 +384,15 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 		if (options.getInputMode() == InputMode.QUANTISED_FEATURES) {
 			job.setMapperClass(QFIndexerMapper.class);
 		} else { 
-			job.setMapperClass(ImageIndexerMapper.class);
+			if (options.shardPerThread) {
+				job.setMapperClass(MultithreadedMapper.class);
+				MultithreadedMapper.setMapperClass(job, MTImageIndexerMapper.class);
+				MultithreadedMapper.setNumberOfThreads(job, options.getMultithread());				
+			} else {
+				job.setMapperClass(ImageIndexerMapper.class);
+			}
 		}
+		
 		job.setReducerClass(IndexerReducer.class);
 
 		FileOutputFormat.setOutputPath(job, options.getOutputPath());
