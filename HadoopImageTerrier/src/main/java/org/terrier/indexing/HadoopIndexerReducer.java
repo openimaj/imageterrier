@@ -143,7 +143,7 @@ public abstract class HadoopIndexerReducer extends Reducer<NewSplitEmittedTerm, 
 			LinkedList<MapData> runData = loadRunData(context);
 	    	startReduce(runData, context);
 		}
-		
+
 		reduceCount ++;
 		
 		String term = key.getTerm().trim();
