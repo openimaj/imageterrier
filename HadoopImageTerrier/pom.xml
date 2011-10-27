@@ -82,7 +82,7 @@
 		<dependency>
 			<groupId>org.openimaj.tools</groupId>
 			<artifactId>HadoopClusterQuantiserTool</artifactId>
-			<version>1.0.2-SNAPSHOT</version>
+			<version>${openimaj.version}</version>
 			<scope>compile</scope>
 		</dependency>
 		<dependency>

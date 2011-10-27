@@ -76,6 +76,9 @@
 			<system>Sourceforge/Allura</system>
 			<url>https://sourceforge.net/p/openimaj/tickets/</url>
 		</issueManagement>
+		<properties>
+			<openimaj.version>1.0.5</openimaj.version>
+		</properties>
 	<modules>
 		<module>ImageTerrier</module>
 		<module>ImageTerrierTools</module>

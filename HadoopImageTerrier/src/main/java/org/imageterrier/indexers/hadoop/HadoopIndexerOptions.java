@@ -140,4 +140,8 @@ public class HadoopIndexerOptions {
 			return Runtime.getRuntime().availableProcessors();
 		return multithread;
 	}
+
+	public void setNumReducers(int nReducers) {
+		this.numReducers = nReducers;
+	}
 }

@@ -64,6 +64,7 @@ import org.openimaj.feature.local.quantised.QuantisedLocalFeature;
 import org.openimaj.hadoop.tools.clusterquantiser.HadoopClusterQuantiserOptions;
 import org.openimaj.io.IOUtils;
 import org.openimaj.ml.clustering.Cluster;
+import org.openimaj.tools.clusterquantiser.ClusterType;
 import org.terrier.indexing.AbstractHadoopIndexer;
 import org.terrier.indexing.Document;
 import org.terrier.indexing.ExtensibleSinglePassIndexer;
@@ -88,6 +89,8 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 	protected static final Logger logger = Logger.getLogger(HadoopIndexer.class);
 	
 	public static final String INDEXER_ARGS_STRING = "indexer.args";
+
+	public static final String QUANTISER_SIZE = "indexer.quantiser.size";
 	
 	/**
 	 * The mapper implementation for direct quantised feature indexing
@@ -229,6 +232,7 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 		protected void map(Text key, BytesWritable value, final Context context) throws IOException, InterruptedException {
 			final Text innerkey = new Text(key.toString());
 			final BytesWritable innervalue = new BytesWritable(Arrays.copyOf(value.getBytes(), value.getLength()));
+			
 			 
 			Callable<Boolean> r = new Callable<Boolean>() {
 				@Override
@@ -238,17 +242,17 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 					final Document doc = recordToDocument(innerkey, innervalue);
 					if(doc==null) return false;
 					
-					long t1 = System.nanoTime();
-					synchronized (ImageIndexerMapper.this) {
-						long t2 = System.nanoTime();
-						
-						System.out.println("Spent " + (t2-t1) + "ns waiting for lock!");
-						
-						context.setStatus("Currently indexing "+docno);
-						
-						indexDocument(doc, context);
-						context.getCounter(Counters.INDEXED_DOCUMENTS).increment(1);
-					}
+//					long t1 = System.nanoTime();
+//					synchronized (ImageIndexerMapper.this) {
+//						long t2 = System.nanoTime();
+//						
+//						System.out.println("Spent " + ((t2-t1)*(1.0e-9)) + "s waiting for lock!");
+//						
+//						context.setStatus("Currently indexing "+docno);
+//						
+//						indexDocument(doc, context);
+//						context.getCounter(Counters.INDEXED_DOCUMENTS).increment(1);
+//					}
 					return true;
 				}
 			};
@@ -272,7 +276,7 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 			featureClass = options.getFeatureClass();
 			
 			//load quantiser if required
-			loadQuantiser(options);
+			loadQuantiser(options,true);
 			
 			//set up threadpool
 			int nThreads = options.getMultithread();
@@ -333,20 +337,31 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 			}
 		}
 
-		private static synchronized void loadQuantiser(HadoopIndexerOptions options) throws IOException {
+		private static synchronized void loadQuantiser(HadoopIndexerOptions options,boolean optimise) throws IOException {
 			if (quantiser == null) {
-				System.out.println("Loading codebook...");
-				String codebookURL = options.getInputModeOptions().getQuantiserFile();
-				options.getInputModeOptions().quantiserType = HadoopClusterQuantiserOptions.sniffClusterType(codebookURL);
-				
-				if (options.getInputModeOptions().quantiserType != null)
-					quantiser = IOUtils.read(HadoopClusterQuantiserOptions.getClusterInputStream(codebookURL), options.getInputModeOptions().getQuantiserType().getClusterClass());
-				quantiser.optimize(options.getInputModeOptions().quantiserExact);
-				System.out.println("Done!");
+				quantiser = readQuantiser(options,optimise);
 			}
 		}
-	}
 
+		
+	}
+	
+	protected static Cluster<?, ?> readQuantiser(HadoopIndexerOptions options,boolean optimise) throws IOException {
+		Cluster<?, ?> quantiser = null;
+		System.out.println("Loading codebook...");
+		String codebookURL = options.getInputModeOptions().getQuantiserFile();
+		options.getInputModeOptions().quantiserType = HadoopClusterQuantiserOptions.sniffClusterType(codebookURL);
+		
+		if (options.getInputModeOptions().quantiserType != null)
+		{
+			quantiser = IOUtils.read(HadoopClusterQuantiserOptions.getClusterInputStream(codebookURL), options.getInputModeOptions().getQuantiserType().getClusterClass());
+			if(optimise)
+				quantiser.optimize(options.getInputModeOptions().quantiserExact);
+		}
+		System.out.println("Done!");
+		return quantiser;
+		
+	}
 	/**
 	 * The reducer implementation
 	 */
@@ -392,7 +407,16 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 				job.setMapperClass(ImageIndexerMapper.class);
 			}
 		}
-		
+		// Load quantiser (if it exists), extract header, count codebook size
+		String quantFile = options.getInputModeOptions().getQuantiserFile();
+		if(quantFile!=null){
+			System.out.println("Loading codebook to see its size");
+			Cluster<?, ?> quantiser = readQuantiser(options,false);
+			System.out.println("Setting codebook size: " + quantiser.getNumberClusters());
+			job.getConfiguration().setInt(QUANTISER_SIZE, quantiser.getNumberClusters());
+			if(quantiser.getNumberClusters() < options.getNumReducers())
+				options.setNumReducers(quantiser.getNumberClusters());
+		}
 		job.setReducerClass(IndexerReducer.class);
 
 		FileOutputFormat.setOutputPath(job, options.getOutputPath());
@@ -427,7 +451,13 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 			else
 			{
 //				job.setPartitionerClass(NewSplitEmittedTerm.SETPartitionerLowercaseAlphaTerm.class);
-				job.setPartitionerClass(NewSplitEmittedTerm.SETPartitionerHashedTerm.class);
+				if(job.getConfiguration().getInt(QUANTISER_SIZE, -1) == -1){
+					job.setPartitionerClass(NewSplitEmittedTerm.SETPartitionerHashedTerm.class);
+				}
+				else{
+					job.setPartitionerClass(NewSplitEmittedTerm.SETPartitionerCodebookAwareTerm.class);
+				}
+				
 			}
 		} else {
 			//for JUnit tests, we seem to need to restore the original partitioner class

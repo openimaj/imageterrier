@@ -43,6 +43,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.mapreduce.Partitioner;
+import org.imageterrier.indexers.hadoop.HadoopIndexer;
 
 /**
  * Represents a Term key used during MapReduce Indexing. Term keys are emitted from
@@ -366,6 +367,35 @@ public class NewSplitEmittedTerm implements WritableComparable<NewSplitEmittedTe
 			long qc = (hc * (long)numPartitions) / (2L * (long)Integer.MAX_VALUE);
 			
 			return (int) qc;
+		}
+	}
+	
+	public static class SETPartitionerCodebookAwareTerm extends Partitioner<NewSplitEmittedTerm, MapEmittedPostingList> implements Configurable{
+		
+		
+		private int codebookSize;
+		private Configuration conf;
+		/** Retuns the partition for the specified term and posting list, given the specified
+		 * number of partitions.
+		 */
+		@Override
+		public int getPartition(NewSplitEmittedTerm term, MapEmittedPostingList posting, int numPartitions) {
+			String termIntStr = term.getTerm().substring(3);
+			int termInt = Integer.parseInt(termIntStr);
+			int qc = (termInt * numPartitions) / codebookSize;
+			
+			return qc;
+		}
+
+		@Override
+		public void setConf(Configuration conf) {
+			this.conf = conf;
+			this.codebookSize = conf.getInt(HadoopIndexer.QUANTISER_SIZE, Integer.MAX_VALUE);
+		}
+
+		@Override
+		public Configuration getConf() {
+			return this.conf ;
 		}
 	}
 }
