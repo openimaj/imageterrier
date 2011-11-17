@@ -77,7 +77,7 @@
 			<url>https://sourceforge.net/p/openimaj/tickets/</url>
 		</issueManagement>
 		<properties>
-			<openimaj.version>1.0.5</openimaj.version>
+			<openimaj.version>1.0.6-SNAPSHOT</openimaj.version>
 		</properties>
 	<modules>
 		<module>ImageTerrier</module>
@@ -171,6 +171,12 @@
 			<name>Octopussy Maven Releases Repository</name>
 			<url>http://octopussy.ecs.soton.ac.uk/m2/releases</url>
 		</repository>
+		<snapshotRepository>
+	      <id>octopussy-snapshots</id>
+	      <name>Octopussy Maven Snaphots Repository</name>
+	      <url>http://octopussy.ecs.soton.ac.uk/m2/snapshots</url>
+		  <uniqueVersion>false</uniqueVersion>
+	    </snapshotRepository>
 		<site>
 			<id>imageterrier.sf.net</id>
 			<url>scp://shell.sourceforge.net/home/project-web/imageterrier/htdocs/</url>

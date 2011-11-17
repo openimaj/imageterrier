@@ -43,7 +43,6 @@ import org.openimaj.image.pixel.Pixel;
 import org.openimaj.math.geometry.point.Point2d;
 import org.openimaj.math.model.Model;
 import org.openimaj.math.model.fit.RANSAC;
-import org.openimaj.math.model.fit.RANSAC.PercentageInliersStoppingCondition;
 import org.openimaj.util.pair.Pair;
 import org.terrier.matching.MatchingQueryTerms;
 import org.terrier.matching.ResultSet;
@@ -128,7 +127,19 @@ public abstract class AbstractRANSACGeomModifier implements DocumentScoreModifie
 		int nIter = ApplicationSetupUtils.getProperty(RANSAC_MAX_ITER, 100);
 		double perItemsSuccess = ApplicationSetupUtils.getProperty(RANSAC_PER_MATCHES_SUCCESS, 0.5);
 		
-		RANSAC<Point2d, Point2d> ransac = new RANSAC<Point2d, Point2d>(hm, nIter, new PercentageInliersStoppingCondition(perItemsSuccess), false);
+		RANSAC.StoppingCondition stoppingCondition = null;
+		
+		if (perItemsSuccess > 1) {
+			stoppingCondition = new RANSAC.NumberInliersStoppingCondition((int) perItemsSuccess);
+		} else if (perItemsSuccess > 0 && perItemsSuccess <= 1) {
+			stoppingCondition = new RANSAC.PercentageInliersStoppingCondition(perItemsSuccess);
+		} else if (perItemsSuccess < 0 && perItemsSuccess > -1) {
+			stoppingCondition = new RANSAC.ProbabilisticMinInliersStoppingCondition(Math.abs(perItemsSuccess));
+		} else {
+			stoppingCondition = new RANSAC.BestFitStoppingCondition();
+		}
+		
+		RANSAC<Point2d, Point2d> ransac = new RANSAC<Point2d, Point2d>(hm, nIter, stoppingCondition, false);
 		
 		for (int i=0; i<nRerankDocs; i++) {
 			int docid = resultSet.getDocids()[i];

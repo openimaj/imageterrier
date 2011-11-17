@@ -52,8 +52,8 @@ public enum ScoreModifierType implements CmdLineOptionsProvider {
 		@Option(name="--colinear-filter-thresh", required=false, usage="Threshold for removal of colinear matches. Setting to 0 disables filter.")
 		float filterThresh = 0.5f;
 		
-		@Option(name="--ransac-num-successful", required=false, usage="Number of matches required for RANSAC to succeed.")
-		int numSuccessfulMatches = 7;
+		@Option(name="--ransac-num-successful", required=false, usage="Number of matches required for RANSAC to succeed if > 1. Percentage matches if <= 1. Between 0 and -1 means -desired error probability.")
+		float numSuccessfulMatches = 7;
 		
 		@Option(name="--ransac-max-niter", required=false, usage="Maximum number of RANSAC iterations.")
 		int nIter = 100;
@@ -80,8 +80,8 @@ public enum ScoreModifierType implements CmdLineOptionsProvider {
 		@Option(name="--colinear-filter-thresh", required=false, usage="Threshold for removal of colinear matches. Setting to 0 disables filter.")
 		float filterThresh = 0.5f;
 		
-		@Option(name="--ransac-num-successful", required=false, usage="Number of matches required for RANSAC to succeed.")
-		int numSuccessfulMatches = 7;
+		@Option(name="--ransac-num-successful", required=false, usage="Number of matches required for RANSAC to succeed if > 1. Percentage matches if <= 1. Between 0 and -1 means -desired error probability.")
+		float numSuccessfulMatches = 7;
 		
 		@Option(name="--ransac-max-niter", required=false, usage="Maximum number of RANSAC iterations.")
 		int nIter = 100;
