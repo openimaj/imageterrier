@@ -1,31 +1,18 @@
 package org.imageterrier.tools;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 
 import org.imageterrier.basictools.BasicTerrierConfig;
-import org.imageterrier.locfile.QLFDocument;
-import org.imageterrier.querying.parser.QLFDocumentQuery;
-import org.jgrapht.Graph;
 import org.jgrapht.alg.ConnectivityInspector;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
 import org.kohsuke.args4j.CmdLineException;
-import org.openimaj.image.feature.local.keypoints.quantised.QuantisedKeypoint;
 import org.openimaj.io.ReadWriteableASCII;
-import org.openimaj.io.WriteableASCII;
-import org.terrier.matching.ResultSet;
-import org.terrier.querying.Manager;
-import org.terrier.querying.SearchRequest;
-import org.terrier.structures.Index;
-import org.terrier.utility.ApplicationSetup;
 
 public class ImageClusterTool {
 	
@@ -36,6 +23,10 @@ public class ImageClusterTool {
 	}
 	static class QueryResultsList extends ArrayList<ScoredImageList> implements ReadWriteableASCII{
 
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 7360858547707245579L;
 		private boolean first = true;
 
 		@Override
@@ -80,6 +71,10 @@ public class ImageClusterTool {
 		}
 	}
 	static class ScoredImageList extends ArrayList<ScoredImage> implements ReadWriteableASCII{
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 6019142260018035775L;
 		String query;
 		public ScoredImageList(String queryImageName) {
 			this.query = queryImageName;

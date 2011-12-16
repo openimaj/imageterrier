@@ -2,10 +2,8 @@ package org.imageterrier.tools;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Iterator;
@@ -16,7 +14,6 @@ import org.imageterrier.locfile.QLFDocument;
 import org.imageterrier.querying.parser.QLFDocumentQuery;
 import org.imageterrier.toolopts.MatchingModelType;
 import org.imageterrier.toolopts.ScoreModifierType;
-import org.imageterrier.tools.ImageClusterTool.QueryResultsList;
 import org.imageterrier.tools.ImageClusterTool.ScoredImage;
 import org.imageterrier.tools.ImageClusterTool.ScoredImageList;
 import org.jgrapht.graph.DefaultEdge;
@@ -66,7 +63,6 @@ public class ImageClusterToolOptions {
 			String imgTMPL = "<img style='width:100px' src='%s'/>";
 			@Override
 			public void outputCluster(List<Set<String>> imageClusters,PrintWriter clusterWriter) {
-				boolean first = true;
 				clusterWriter.println(htmlHEAD);
 				for(Set<String> cluster : imageClusters){
 					clusterWriter.println("<div>");
