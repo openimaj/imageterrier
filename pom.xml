@@ -83,7 +83,8 @@
 		<module>ImageTerrier</module>
 		<module>ImageTerrierTools</module>
 		<module>HadoopImageTerrier</module>
-	</modules>
+    <module>ImageClusterTool</module>
+  </modules>
 	<build>
 		<plugins>
 			<plugin>

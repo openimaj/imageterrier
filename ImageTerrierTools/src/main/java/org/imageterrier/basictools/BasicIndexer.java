@@ -161,7 +161,7 @@ public class BasicIndexer {
 
 		//Create or load quantiser
 		Cluster<?,?> cluster;
-		if (new File(options.getQuantiserFile()).exists()) {
+		if (options.getQuantiserFile() != null && new File(options.getQuantiserFile()).exists()) {
 			if (toolOpts.isVerbose()) System.err.println("Loading quantiser");
 			
 			options.quantiserType = ClusterType.sniffClusterType(new File(options.getQuantiserFile()));
