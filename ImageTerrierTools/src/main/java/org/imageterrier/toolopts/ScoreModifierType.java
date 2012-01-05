@@ -33,6 +33,7 @@ import org.imageterrier.dsms.AffineScoreModifier;
 import org.imageterrier.dsms.ConsistentAffineScoreModifier;
 import org.imageterrier.dsms.ConsistentOriScoreModifier;
 import org.imageterrier.dsms.ConsistentScaleScoreModifier;
+import org.imageterrier.dsms.FundamentalScoreModifier;
 import org.imageterrier.dsms.HomographyScoreModifier;
 import org.imageterrier.dsms.NNScoreModifier;
 import org.imageterrier.dsms.PeakMode;
@@ -71,6 +72,34 @@ public enum ScoreModifierType implements CmdLineOptionsProvider {
 			ApplicationSetup.setProperty(HomographyScoreModifier.MODEL_TOLERANCE, tolerance+"");
 			
 			return HomographyScoreModifier.class.getName();
+		}
+	},
+	FUNDAMENTAL(PositionInvertedIndex.class) {
+		@Option(name="--num-docs-rerank", required=false, usage="Number of documents to consider in geometric reranking.")
+		int numDocsRerank = 0;
+
+		@Option(name="--colinear-filter-thresh", required=false, usage="Threshold for removal of colinear matches. Setting to 0 disables filter.")
+		float filterThresh = 0.5f;
+		
+		@Option(name="--ransac-num-successful", required=false, usage="Number of matches required for RANSAC to succeed if > 1. Percentage matches if <= 1. Between 0 and -1 means -desired error probability.")
+		float numSuccessfulMatches = 7;
+		
+		@Option(name="--ransac-max-niter", required=false, usage="Maximum number of RANSAC iterations.")
+		int nIter = 100;
+		
+		@Option(name="--tolerance", required=false, usage="Tolerance in the difference of the value of y' * F * x  from 0")
+		float tolerance = 0.1f;
+		
+		@Override
+		public String getScoreModifierClass() {
+			ApplicationSetup.setProperty(FundamentalScoreModifier.N_DOCS_TO_RERANK, numDocsRerank+"");
+			ApplicationSetup.setProperty(FundamentalScoreModifier.FILTERING_THRESHOLD, filterThresh+"");
+			ApplicationSetup.setProperty(FundamentalScoreModifier.RANSAC_PER_MATCHES_SUCCESS, numSuccessfulMatches+"");
+			ApplicationSetup.setProperty(FundamentalScoreModifier.RANSAC_MAX_ITER, nIter+"");
+			
+			ApplicationSetup.setProperty(FundamentalScoreModifier.MODEL_TOLERANCE, tolerance+"");
+			
+			return FundamentalScoreModifier.class.getName();
 		}
 	},
 	AFFINE(PositionInvertedIndex.class) {
