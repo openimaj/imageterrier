@@ -67,6 +67,6 @@ public class FundamentalScoreModifier extends AbstractRANSACGeomModifier impleme
 	@Override
 	public Model<Point2d, Point2d> makeModel() {
 		float tol = ApplicationSetupUtils.getProperty(MODEL_TOLERANCE, 0.1f);
-		return new FundamentalModel(tol);
+		return new FundamentalModel(new FundamentalModel.SampsonGeometricErrorCondition(tol));
 	}
 }
