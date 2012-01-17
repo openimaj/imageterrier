@@ -31,6 +31,8 @@ package org.imageterrier.dsms;
 import org.imageterrier.locfile.PositionSpec;
 import org.imageterrier.locfile.PositionSpec.PositionSpecMode;
 
+import cern.colt.Arrays;
+
 
 public class ConsistentOriScoreModifier extends AbstractHistogramConsistentScore {
 	@Override
@@ -54,9 +56,32 @@ public class ConsistentOriScoreModifier extends AbstractHistogramConsistentScore
 	@Override
 	public void incr(int[][] matchedTermPos, int[] queryTermIndecies,float[] hist, double[] maxVals) {
 		for (int i=0; i<matchedTermPos.length; i++) {
-			double difTheta = (queryTermIndecies[0] - matchedTermPos[i][0] + maxVals[0]) / (2 * maxVals[0]);
-			int bin = (int)(difTheta * hist.length);
-			hist[bin]++;
+			//double difTheta = (queryTermIndecies[0] - matchedTermPos[i][0] + maxVals[0]) / (2 * maxVals[0]);
+			double difTheta = (queryTermIndecies[0] - matchedTermPos[i][0]);
+			
+			if (difTheta > maxVals[0]/2) difTheta -= maxVals[0];
+			if (difTheta < -maxVals[0]/2) difTheta += maxVals[0];
+			
+			difTheta += maxVals[0] / 2;
+			difTheta /= (maxVals[0] + 0.00001);
+			
+			difTheta *= hist.length;
+			int bin = (int)(difTheta);
+			double rem = difTheta - bin;
+			
+			int obin = bin-1; 
+			if (rem > 0.5) {
+				obin = bin+1;
+			}
+			
+			if (obin < 0) obin = hist.length-1;
+			if (obin >= hist.length) obin = 0;
+			
+			double ofrac = Math.abs(rem-0.5);
+			double frac = 1 - ofrac; 
+			
+			hist[bin] += frac;
+			hist[obin] += ofrac;
 		}
 	}
 }
