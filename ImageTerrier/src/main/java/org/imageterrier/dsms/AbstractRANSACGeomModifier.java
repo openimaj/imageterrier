@@ -39,8 +39,8 @@ import org.imageterrier.locfile.PositionSpec;
 import org.imageterrier.locfile.QLFDocument;
 import org.imageterrier.querying.parser.QLFDocumentQuery;
 import org.imageterrier.structures.PositionInvertedIndex;
-import org.openimaj.image.pixel.Pixel;
 import org.openimaj.math.geometry.point.Point2d;
+import org.openimaj.math.geometry.point.Point2dImpl;
 import org.openimaj.math.model.Model;
 import org.openimaj.math.model.fit.RANSAC;
 import org.openimaj.util.pair.Pair;
@@ -185,10 +185,10 @@ public abstract class AbstractRANSACGeomModifier implements DocumentScoreModifie
 	public abstract AbstractRANSACGeomModifier clone();
 	
 	protected void addMatches(int [] qp, int [][] tps, List<Pair<Point2d>> matches) {
-		Point2d qpt = new Pixel(qp[0], qp[1]);
+		Point2d qpt = new Point2dImpl(qp[0], qp[1]);
 		
 		for (int [] tp : tps) {
-			Point2d tpt = new Pixel(tp[0], tp[1]);
+			Point2d tpt = new Point2dImpl(tp[0], tp[1]);
 			matches.add(new Pair<Point2d>(qpt, tpt));
 		}
 	}
