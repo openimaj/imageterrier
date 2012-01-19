@@ -51,6 +51,7 @@ import org.terrier.structures.BitIndexPointer;
 import org.terrier.structures.Index;
 import org.terrier.structures.Lexicon;
 import org.terrier.structures.LexiconEntry;
+import org.terrier.utility.ApplicationSetup;
 
 
 /**
@@ -67,6 +68,42 @@ import org.terrier.structures.LexiconEntry;
  *
  */
 public abstract class AbstractRANSACGeomModifier implements DocumentScoreModifier {
+	public enum ScoringScheme {
+		BINARY {
+			@Override
+			public double score(double originalScore, boolean didMatch, int nInliers, int nOutliers) {
+				return (didMatch ? 1.0 : 0.0) * originalScore;
+			}
+		},
+		MULTIPLY_NUM_MATCHES {
+			@Override
+			public double score(double originalScore, boolean didMatch, int nInliers, int nOutliers) {
+				return (didMatch ? nInliers : 0.0) * originalScore;
+			}
+		},
+		NUM_MATCHES {
+			@Override
+			public double score(double originalScore, boolean didMatch, int nInliers, int nOutliers) {
+				return (didMatch ? nInliers : 0.0);
+			}
+		},
+		MULTIPLY_PERCENTAGE_MATCHES {
+			@Override
+			public double score(double originalScore, boolean didMatch, int nInliers, int nOutliers) {
+				return (didMatch ? (double)nInliers/(double)(nInliers+nOutliers) : 0.0) * originalScore;
+			}
+		},
+		PERCENTAGE_MATCHES  {
+			@Override
+			public double score(double originalScore, boolean didMatch, int nInliers, int nOutliers) {
+				return (didMatch ? (double)nInliers/(double)(nInliers+nOutliers) : 0.0);
+			}
+		}
+		;
+		
+		public abstract double score(double originalScore, boolean didMatch, int nInliers, int nOutliers);
+	}
+	
 	/** The number of documents to apply re-ranking to */
 	public static final String N_DOCS_TO_RERANK = "GeomScoreModifier.num_docs_rerank";
 	
@@ -79,6 +116,9 @@ public abstract class AbstractRANSACGeomModifier implements DocumentScoreModifie
 	/** The percentage of matches required for a successful match */
 	public static final String RANSAC_MAX_ITER = "GeomScoreModifier.ransac_max_iter";
 
+	/** The scoring scheme */
+	public static final String SCORING_SCHEME = "GeomScoreModifier.scoring";
+	
 	@Override
 	public boolean modifyScores(Index index, MatchingQueryTerms queryTerms, ResultSet resultSet) {
 		Lexicon<String> lexicon = index.getLexicon();
@@ -92,7 +132,6 @@ public abstract class AbstractRANSACGeomModifier implements DocumentScoreModifie
 		int nd2r = ApplicationSetupUtils.getProperty(N_DOCS_TO_RERANK, resultSet.getResultSize());
 		final int nRerankDocs = (nd2r <= 0 ? resultSet.getResultSize() : (nd2r > resultSet.getResultSize() ? resultSet.getResultSize() : nd2r));
 		
-		for (int i=0; i<scores.length; i++) scores[i] = 0;
 		queryDoc.reset();
 
 		//record matches per doc:
@@ -127,6 +166,8 @@ public abstract class AbstractRANSACGeomModifier implements DocumentScoreModifie
 		int nIter = ApplicationSetupUtils.getProperty(RANSAC_MAX_ITER, 100);
 		double perItemsSuccess = ApplicationSetupUtils.getProperty(RANSAC_PER_MATCHES_SUCCESS, 0.5);
 		
+		ScoringScheme scoringScheme = ScoringScheme.valueOf(ApplicationSetup.getProperty(SCORING_SCHEME, ScoringScheme.NUM_MATCHES.name()));
+		
 		RANSAC.StoppingCondition stoppingCondition = null;
 		
 		if (perItemsSuccess > 1) {
@@ -145,7 +186,11 @@ public abstract class AbstractRANSACGeomModifier implements DocumentScoreModifie
 			int docid = resultSet.getDocids()[i];
 			List<Pair<Point2d>> data = allMatchingPoints.get(docid);
 			filter(data); 
-			if (ransac.fitData(data)) scores[i] = ransac.getInliers().size();
+			
+			boolean didFit = ransac.fitData(data);
+			int nInliers = ransac.getInliers().size();
+			int nOutliers = ransac.getOutliers().size();
+			scores[i] = scoringScheme.score(scores[i], didFit, nInliers, nOutliers);
 		}
 
 		return true;
@@ -173,7 +218,7 @@ public abstract class AbstractRANSACGeomModifier implements DocumentScoreModifie
 		
 		List<Pair<Point2d>> remove = new ArrayList<Pair<Point2d>>();
 		for (Pair<Point2d> m : in) {
-			float score = Math.min(forwardMatches.get(m.firstObject()), reverseMatches.get(m.secondObject())) / Math.max(forwardMatches.get(m.firstObject()), reverseMatches.get(m.secondObject()));
+			float score = (float)Math.min(forwardMatches.get(m.firstObject()), reverseMatches.get(m.secondObject())) / (float)Math.max(forwardMatches.get(m.firstObject()), reverseMatches.get(m.secondObject()));
 			
 			if (score < thresh) remove.add(m);
 		}

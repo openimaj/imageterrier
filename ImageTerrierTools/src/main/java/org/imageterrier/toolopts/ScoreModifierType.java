@@ -29,6 +29,8 @@
 package org.imageterrier.toolopts;
 
 import org.imageterrier.dsms.AbstractHistogramConsistentScore;
+import org.imageterrier.dsms.AbstractRANSACGeomModifier;
+import org.imageterrier.dsms.AbstractRANSACGeomModifier.ScoringScheme;
 import org.imageterrier.dsms.AffineScoreModifier;
 import org.imageterrier.dsms.ConsistentAffineScoreModifier;
 import org.imageterrier.dsms.ConsistentOriScoreModifier;
@@ -47,6 +49,9 @@ import org.terrier.utility.ApplicationSetup;
 
 public enum ScoreModifierType implements CmdLineOptionsProvider {
 	HOMOGRAPHY(PositionInvertedIndex.class) {
+		@Option(name="--scoring-scheme", required=false, usage="Scoring scheme")
+		ScoringScheme scoringScheme = ScoringScheme.NUM_MATCHES;
+		
 		@Option(name="--num-docs-rerank", required=false, usage="Number of documents to consider in geometric reranking.")
 		int numDocsRerank = 0;
 
@@ -64,6 +69,7 @@ public enum ScoreModifierType implements CmdLineOptionsProvider {
 		
 		@Override
 		public String getScoreModifierClass() {
+			ApplicationSetup.setProperty(AbstractRANSACGeomModifier.SCORING_SCHEME, scoringScheme.name());
 			ApplicationSetup.setProperty(HomographyScoreModifier.N_DOCS_TO_RERANK, numDocsRerank+"");
 			ApplicationSetup.setProperty(HomographyScoreModifier.FILTERING_THRESHOLD, filterThresh+"");
 			ApplicationSetup.setProperty(HomographyScoreModifier.RANSAC_PER_MATCHES_SUCCESS, numSuccessfulMatches+"");
@@ -75,6 +81,9 @@ public enum ScoreModifierType implements CmdLineOptionsProvider {
 		}
 	},
 	FUNDAMENTAL(PositionInvertedIndex.class) {
+		@Option(name="--scoring-scheme", required=false, usage="Scoring scheme")
+		ScoringScheme scoringScheme = ScoringScheme.NUM_MATCHES;
+		
 		@Option(name="--num-docs-rerank", required=false, usage="Number of documents to consider in geometric reranking.")
 		int numDocsRerank = 0;
 
@@ -92,6 +101,7 @@ public enum ScoreModifierType implements CmdLineOptionsProvider {
 		
 		@Override
 		public String getScoreModifierClass() {
+			ApplicationSetup.setProperty(AbstractRANSACGeomModifier.SCORING_SCHEME, scoringScheme.name());
 			ApplicationSetup.setProperty(FundamentalScoreModifier.N_DOCS_TO_RERANK, numDocsRerank+"");
 			ApplicationSetup.setProperty(FundamentalScoreModifier.FILTERING_THRESHOLD, filterThresh+"");
 			ApplicationSetup.setProperty(FundamentalScoreModifier.RANSAC_PER_MATCHES_SUCCESS, numSuccessfulMatches+"");
@@ -103,6 +113,9 @@ public enum ScoreModifierType implements CmdLineOptionsProvider {
 		}
 	},
 	AFFINE(PositionInvertedIndex.class) {
+		@Option(name="--scoring-scheme", required=false, usage="Scoring scheme")
+		ScoringScheme scoringScheme = ScoringScheme.NUM_MATCHES;
+		
 		@Option(name="--num-docs-rerank", required=false, usage="Number of documents to consider in geometric reranking.")
 		int numDocsRerank = 0;
 
@@ -120,6 +133,7 @@ public enum ScoreModifierType implements CmdLineOptionsProvider {
 		
 		@Override
 		public String getScoreModifierClass() {
+			ApplicationSetup.setProperty(AbstractRANSACGeomModifier.SCORING_SCHEME, scoringScheme.name());
 			ApplicationSetup.setProperty(AffineScoreModifier.N_DOCS_TO_RERANK, numDocsRerank+"");
 			ApplicationSetup.setProperty(AffineScoreModifier.FILTERING_THRESHOLD, filterThresh+"");
 			ApplicationSetup.setProperty(AffineScoreModifier.RANSAC_PER_MATCHES_SUCCESS, numSuccessfulMatches+"");
