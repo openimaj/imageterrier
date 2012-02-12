@@ -81,7 +81,6 @@ public class HadoopIndexerOptions {
 
 	/**
 	 * @return the featureClass
-	 * @throws ClassNotFoundException 
 	 */
 	@SuppressWarnings("unchecked")
 	public Class<? extends QuantisedLocalFeature<?>> getFeatureClass() {
@@ -104,7 +103,7 @@ public class HadoopIndexerOptions {
 	 * This allows easy coupling to features generated from previous reducer
 	 * passes (i.e. from the cluster-quantiser).
 	 * 
-	 * @return
+	 * @return the input paths
 	 * @throws IOException
 	 */
 	public Path[] getInputPaths() throws IOException {

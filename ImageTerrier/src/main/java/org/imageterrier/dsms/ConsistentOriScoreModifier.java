@@ -31,8 +31,6 @@ package org.imageterrier.dsms;
 import org.imageterrier.locfile.PositionSpec;
 import org.imageterrier.locfile.PositionSpec.PositionSpecMode;
 
-import cern.colt.Arrays;
-
 
 public class ConsistentOriScoreModifier extends AbstractHistogramConsistentScore {
 	@Override

@@ -44,6 +44,7 @@ import org.terrier.utility.io.WrappedIOException;
  * 
  * @author Jonathon Hare
  * @author Richard McCreadie
+ * @param <T> the {@link FileSplit} type
  */
 public class PositionAwareSplitWrapper<T extends FileSplit & Writable> extends FileSplit implements Writable {
 	/** the wrapped split */
@@ -58,7 +59,10 @@ public class PositionAwareSplitWrapper<T extends FileSplit & Writable> extends F
 		splitnum=-1;
 	}
 	
-	/** Make a new split with the specified attributs */
+	/** Make a new split with the specified attributs 
+	 * @param _split 
+	 * @param _splitnum 
+	 */
 	public PositionAwareSplitWrapper(T _split, int _splitnum) {
 		super(null,0,0,null);
 		split = _split;

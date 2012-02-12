@@ -64,7 +64,6 @@ import org.openimaj.feature.local.quantised.QuantisedLocalFeature;
 import org.openimaj.hadoop.tools.clusterquantiser.HadoopClusterQuantiserOptions;
 import org.openimaj.io.IOUtils;
 import org.openimaj.ml.clustering.Cluster;
-import org.openimaj.tools.clusterquantiser.ClusterType;
 import org.terrier.indexing.AbstractHadoopIndexer;
 import org.terrier.indexing.Document;
 import org.terrier.indexing.ExtensibleSinglePassIndexer;
@@ -237,7 +236,7 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 			Callable<Boolean> r = new Callable<Boolean>() {
 				@Override
 				public Boolean call() throws IOException {
-					final String docno = innerkey.toString();
+//					final String docno = innerkey.toString();
 					
 					final Document doc = recordToDocument(innerkey, innervalue);
 					if(doc==null) return false;

@@ -44,7 +44,9 @@ import org.terrier.utility.io.WrappedIOException;
  * @author Richard McCreadie and Craig Macdonald
  * @author Jonathon Hare
  *  
- * @version $Revision: 1.0 $ */
+ * @version $Revision: 1.0 $ 
+ * @param <VALUEIN>  
+ */
 public class NewHadoopRunWriter<VALUEIN> extends RunWriter {
 	/** output collector of Map task */
 	protected Mapper<Text,VALUEIN,NewSplitEmittedTerm,MapEmittedPostingList>.Context context = null;
@@ -60,8 +62,9 @@ public class NewHadoopRunWriter<VALUEIN> extends RunWriter {
 	
 	/** Create a new HadoopRunWriter, specifying the output collector of the map task
 	 * the run number and the flush number.
-	 * @param _outputCollector where to emit the posting lists to
-	 * @param _mapId the task id of the map currently being processed
+	 * @param context where to emit the posting lists to
+	 * @param mapId the task id of the map currently being processed
+	 * @param splitId the id of the split
 	 * @param flushNo the number of times that this map task has flushed
 	 */
 	public NewHadoopRunWriter(Mapper<Text,VALUEIN,NewSplitEmittedTerm,MapEmittedPostingList>.Context context, String mapId, int splitId, int flushNo)

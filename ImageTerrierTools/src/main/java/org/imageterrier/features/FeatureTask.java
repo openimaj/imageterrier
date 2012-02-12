@@ -66,7 +66,7 @@ public class FeatureTask implements Callable<File> {
 	 * Processed loc file will be created at saveLocation, 
 	 * unless one already existed alongside the image, in which case that one is returned.
 	 * @param filename
-	 * @return
+	 * @return filename
 	 * @throws Exception
 	 */
 	public File call(File filename) throws Exception {

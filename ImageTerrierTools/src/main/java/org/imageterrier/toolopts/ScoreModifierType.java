@@ -28,6 +28,7 @@
  */
 package org.imageterrier.toolopts;
 
+import org.imageterrier.dsms.ASIFTSimIdScoreModifier;
 import org.imageterrier.dsms.AbstractHistogramConsistentScore;
 import org.imageterrier.dsms.AbstractRANSACGeomModifier;
 import org.imageterrier.dsms.AbstractRANSACGeomModifier.ScoringScheme;
@@ -186,6 +187,12 @@ public enum ScoreModifierType implements CmdLineOptionsProvider {
 			ApplicationSetup.setProperty(AbstractHistogramConsistentScore.CONSISTENT_HISTOGRAM_BINS + ".tilt", ntibins+"");
 			ApplicationSetup.setProperty(AbstractHistogramConsistentScore.PEAK_MODE, peakMode+"");
 			return ConsistentAffineScoreModifier.class.getName();
+		}
+	},
+	CONSISTENT_AFFINE_SIM(PositionInvertedIndex.class) {
+		@Override
+		public String getScoreModifierClass() {
+			return ASIFTSimIdScoreModifier.class.getName();
 		}
 	},
 	NEAREST_NEIGHBOUR(NNInvertedIndex.class) {

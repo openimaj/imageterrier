@@ -28,7 +28,6 @@
  */
 package org.imageterrier.querying.parser;
 
-import gnu.trove.TIntObjectProcedure;
 import gnu.trove.TObjectIntHashMap;
 import gnu.trove.TObjectIntProcedure;
 

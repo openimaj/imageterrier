@@ -123,7 +123,10 @@ public abstract class HadoopIndexerReducer extends Reducer<NewSplitEmittedTerm, 
 	 * postings to be relative to one another using the run number, number of documents
 	 * covered in each run, the flush number for that run and the number of documents
 	 * flushed.
-	 * @param mapData - info about the runs(maps) and the flushes
+	 * 
+	 * @param mapData Info about the runs(maps) and the flushes
+	 * @param context The Hadoop context
+	 * @throws IOException 
 	 */
 	public void startReduce(LinkedList<MapData> mapData, Context context) throws IOException {
 		ExtensibleSinglePassIndexer.logger.info("The number of Reduce Tasks being used : "+context.getNumReduceTasks());
