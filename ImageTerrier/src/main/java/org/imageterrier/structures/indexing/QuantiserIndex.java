@@ -36,6 +36,7 @@ import org.openimaj.ml.clustering.Cluster;
 import org.terrier.structures.Index;
 
 import org.openimaj.tools.clusterquantiser.ClusterType;
+import org.openimaj.tools.clusterquantiser.ClusterType.ClusterTypeOp;
 
 /**
  * An index structure for an vector quantiser (an OpenIMAJ {@link Cluster}) which
@@ -73,7 +74,7 @@ public class QuantiserIndex {
 	 * @throws IOException
 	 */
 	public void load(File file) throws IOException {
-		ClusterType quantiserType = ClusterType.sniffClusterType(file);
+		ClusterTypeOp quantiserType = ClusterType.sniffClusterType(file);
 		
 		quantiser = IOUtils.read(file, quantiserType.getClusterClass());
 	}
