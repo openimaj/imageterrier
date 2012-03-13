@@ -6,7 +6,9 @@ import org.kohsuke.args4j.CmdLineOptionsProvider;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.ProxyOptionHandler;
 import org.openimaj.tools.clusterquantiser.ClusterType;
+import org.openimaj.tools.clusterquantiser.ClusterType.ClusterTypeOp;
 import org.openimaj.tools.localfeature.LocalFeatureMode;
+import org.openimaj.tools.localfeature.LocalFeatureMode.LocalFeatureModeOp;
 
 
 /**
@@ -35,14 +37,15 @@ public enum InputMode implements CmdLineOptionsProvider {
 		private String quantiserFile;
 		
 		@Option(name = "--quant-type", aliases = "-qt", usage = "Quantiser type. Defaults to AKM (FastKMeans)", required = false, metaVar = "type", handler=ProxyOptionHandler.class)
-		public ClusterType quantiserType = ClusterType.FASTKMEANS;
+		private ClusterType quantiserType = ClusterType.FASTKMEANS;
+		public ClusterTypeOp quantiserTypeOp = (ClusterTypeOp) ClusterType.FASTKMEANS.getOptions();
 		
 		@Option(name = "--quant-exact", aliases = "-qe", usage = "Load the quantiser in exact mode or not", required = false, metaVar = "type", handler=ProxyOptionHandler.class)
 		public boolean quantiserExact = false;
 		
 		@Option(name = "--feature-type", aliases = "-ft", usage = "Feature type. Defaults to plain DoG/SIFT", required = false, metaVar = "type", handler=ProxyOptionHandler.class)
-		public
-		LocalFeatureMode featureType = LocalFeatureMode.SIFT;
+		private LocalFeatureMode featureType = LocalFeatureMode.SIFT;
+		public LocalFeatureModeOp featureTypeOp = LocalFeatureMode.SIFT.getOptions();
 		
 		public String getQuantiserFile() throws IOException {
 //			if (quantiserFile == null) {
@@ -53,14 +56,13 @@ public enum InputMode implements CmdLineOptionsProvider {
 			return quantiserFile;
 		}
 
-		public ClusterType getQuantiserType() {
-			return quantiserType;
+		public ClusterTypeOp getQuantiserType() {
+			return quantiserTypeOp;
 		}
 
-		public LocalFeatureMode getFeatureType() {
-			return featureType;
+		public LocalFeatureModeOp getFeatureType() {
+			return featureTypeOp;
 		}
-
 	}
 	
 	public static class QFModeOptions extends InputModeOptions {

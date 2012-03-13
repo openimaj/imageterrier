@@ -130,10 +130,10 @@ public class BasicIndexer {
 		}
 		
 		if (toolOpts.isVerbose()) System.err.println("Loading quantiser");
-		options.quantiserType = ClusterType.sniffClusterType(new File(options.getQuantiserFile()));
+		options.quantiserTypeOp = ClusterType.sniffClusterType(new File(options.getQuantiserFile()));
 		
 		Cluster<?, ?> cluster = null;
-		if (options.quantiserType != null)
+		if (options.quantiserTypeOp != null)
 			cluster = IOUtils.read(new File(options.getQuantiserFile()), options.getQuantiserType().getClusterClass());
 		
 		return new ProcessData(collection, cluster);
@@ -164,9 +164,9 @@ public class BasicIndexer {
 		if (options.getQuantiserFile() != null && new File(options.getQuantiserFile()).exists()) {
 			if (toolOpts.isVerbose()) System.err.println("Loading quantiser");
 			
-			options.quantiserType = ClusterType.sniffClusterType(new File(options.getQuantiserFile()));
+			options.quantiserTypeOp = ClusterType.sniffClusterType(new File(options.getQuantiserFile()));
 			
-			if (options.quantiserType == null) throw new RuntimeException("Unknown cluster type");
+			if (options.quantiserTypeOp == null) throw new RuntimeException("Unknown cluster type");
 			
 			cluster = IOUtils.read(new File(options.getQuantiserFile()), options.getQuantiserType().getClusterClass());
 		} else {
@@ -180,8 +180,8 @@ public class BasicIndexer {
 					 files.add(f.get());
 			
 			cqopts.setInputFiles(files);
-			cqopts.setClusterType(options.getQuantiserType());
-			FileType ft = options.featureType == LocalFeatureMode.ASIFTENRICHED ? FileType.ASIFTENRICHED_BINARY : FileType.BINARY_KEYPOINT; 
+			cqopts.setClusterTypeOp(options.getQuantiserType());
+			FileType ft = options.featureTypeOp.getMode() == LocalFeatureMode.ASIFTENRICHED ? FileType.ASIFTENRICHED_BINARY : FileType.BINARY_KEYPOINT; 
 			cqopts.setFileType(ft);
 			byte [][] data = ClusterQuantiser.do_getSamples(cqopts);
 			cluster = options.getQuantiserType().create(data);

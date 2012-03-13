@@ -37,6 +37,7 @@ import org.apache.log4j.Logger;
 import org.openimaj.feature.local.list.LocalFeatureList;
 import org.openimaj.io.IOUtils;
 import org.openimaj.tools.localfeature.LocalFeatureMode;
+import org.openimaj.tools.localfeature.LocalFeatureMode.LocalFeatureModeOp;
 
 
 public class FeatureTask implements Callable<File> {
@@ -44,9 +45,9 @@ public class FeatureTask implements Callable<File> {
 
 	protected boolean forceRegeneration;
 	protected File imageFile;
-	protected LocalFeatureMode mode;
+	protected LocalFeatureModeOp mode;
 
-	public FeatureTask(File imageFile, boolean forceRegeneration, LocalFeatureMode mode) {
+	public FeatureTask(File imageFile, boolean forceRegeneration, LocalFeatureModeOp mode) {
 		this.imageFile = imageFile;
 		this.forceRegeneration = forceRegeneration;
 		this.mode = mode;
@@ -88,7 +89,7 @@ public class FeatureTask implements Callable<File> {
 		return filename;
 	}
 
-	public static LocalFeatureList<?> computeFeatures(File imageFile, LocalFeatureMode mode) throws IOException {
+	public static LocalFeatureList<?> computeFeatures(File imageFile, LocalFeatureModeOp mode) throws IOException {
 		return mode.getKeypointList(loadImageData(imageFile));
 	}
 	

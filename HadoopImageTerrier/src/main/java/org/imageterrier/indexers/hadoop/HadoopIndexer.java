@@ -132,9 +132,9 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 				
 				System.out.println("Loading codebook...");
 				String codebookURL = options.getInputModeOptions().getQuantiserFile();
-				options.getInputModeOptions().quantiserType = HadoopClusterQuantiserOptions.sniffClusterType(codebookURL);
+				options.getInputModeOptions().quantiserTypeOp = HadoopClusterQuantiserOptions.sniffClusterType(codebookURL);
 				
-				if (options.getInputModeOptions().quantiserType != null)
+				if (options.getInputModeOptions().getQuantiserType() != null)
 					quantiser = IOUtils.read(HadoopClusterQuantiserOptions.getClusterInputStream(codebookURL), options.getInputModeOptions().getQuantiserType().getClusterClass());
 				quantiser.optimize(options.getInputModeOptions().quantiserExact);
 				System.out.println("Done!");
@@ -349,9 +349,9 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 		Cluster<?, ?> quantiser = null;
 		System.out.println("Loading codebook...");
 		String codebookURL = options.getInputModeOptions().getQuantiserFile();
-		options.getInputModeOptions().quantiserType = HadoopClusterQuantiserOptions.sniffClusterType(codebookURL);
+		options.getInputModeOptions().quantiserTypeOp = HadoopClusterQuantiserOptions.sniffClusterType(codebookURL);
 		
-		if (options.getInputModeOptions().quantiserType != null)
+		if (options.getInputModeOptions().getQuantiserType() != null)
 		{
 			quantiser = IOUtils.read(HadoopClusterQuantiserOptions.getClusterInputStream(codebookURL), options.getInputModeOptions().getQuantiserType().getClusterClass());
 			if(optimise)

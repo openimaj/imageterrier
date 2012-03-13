@@ -137,7 +137,7 @@ public class BasicSearcher {
 		
 		//process the image
 		LocalFeatureMode mode = LocalFeatureMode.valueOf(index.getIndexProperty("index.feature.type", ""));
-		LocalFeatureList<?> features = FeatureTask.computeFeatures(imageFile, mode);
+		LocalFeatureList<?> features = FeatureTask.computeFeatures(imageFile, mode.getOptions());
 		
 		LocalFeatureList<QuantisedLocalFeature<?>> qfeatures;
 		if (options.getSoftQuantNeighbours() == 0)
