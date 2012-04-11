@@ -36,7 +36,6 @@ import java.util.concurrent.Callable;
 import org.apache.log4j.Logger;
 import org.openimaj.feature.local.list.LocalFeatureList;
 import org.openimaj.io.IOUtils;
-import org.openimaj.tools.localfeature.LocalFeatureMode;
 import org.openimaj.tools.localfeature.LocalFeatureMode.LocalFeatureModeOp;
 
 

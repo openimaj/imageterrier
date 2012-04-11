@@ -1,5 +1,6 @@
 package org.imageterrier.toolopts;
 
+import java.io.File;
 import java.io.IOException;
 
 import org.kohsuke.args4j.CmdLineOptionsProvider;
@@ -48,10 +49,11 @@ public enum InputMode implements CmdLineOptionsProvider {
 		public LocalFeatureModeOp featureTypeOp = LocalFeatureMode.SIFT.getOptions();
 		
 		public String getQuantiserFile() throws IOException {
-//			if (quantiserFile == null) {
-//				 quantiserFile = File.createTempFile("imageterrier", ".cluster");
-//				 quantiserFile.delete();
-//			}
+			if (quantiserFile == null) {
+				 File tmpFile = File.createTempFile("imageterrier", ".cluster");
+				 tmpFile.delete();
+				 quantiserFile = tmpFile.getAbsolutePath();
+			}
 			
 			return quantiserFile;
 		}
