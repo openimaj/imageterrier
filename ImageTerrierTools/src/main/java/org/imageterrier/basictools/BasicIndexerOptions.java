@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.imageterrier.toolopts.IndexType;
+import org.imageterrier.toolopts.IndexType.IndexTypeOptions;
 import org.imageterrier.toolopts.InputMode;
 import org.imageterrier.toolopts.InputMode.InputModeOptions;
 import org.kohsuke.args4j.Argument;
@@ -41,7 +42,7 @@ import org.kohsuke.args4j.ProxyOptionHandler;
 /**
  * Options for indexing
  * 
- * @author Jonathon Hare
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
  */
 public class BasicIndexerOptions {
 	@Option(name = "--mode", aliases = "-m", usage = "input mode", required = true, handler=ProxyOptionHandler.class)
@@ -52,7 +53,8 @@ public class BasicIndexerOptions {
 	private String filename;
 
 	@Option(name="--type", aliases="-t", required=false, usage="Choose index type", handler=ProxyOptionHandler.class)
-	private IndexType indexType = IndexType.BASIC;
+	protected IndexType indexType = IndexType.BASIC;
+	private IndexTypeOptions indexTypeOp = IndexType.BASIC.getOptions();
 	
 	@Option(name = "--verbose", aliases = "-v", usage = "print verbose output")
 	boolean verbose = false;
@@ -68,8 +70,8 @@ public class BasicIndexerOptions {
 		return filename;
 	}
 	
-	public IndexType getIndexType() {
-		return indexType;
+	public IndexTypeOptions getIndexType() {
+		return indexTypeOp;
 	}
 	
 	public List<String> getSearchPaths() {

@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.apache.hadoop.fs.Path;
 import org.imageterrier.toolopts.IndexType;
+import org.imageterrier.toolopts.IndexType.IndexTypeOptions;
 import org.imageterrier.toolopts.InputMode;
 import org.imageterrier.toolopts.InputMode.InputModeOptions;
 import org.kohsuke.args4j.Argument;
@@ -23,8 +24,10 @@ import org.openimaj.image.feature.local.keypoints.quantised.QuantisedKeypoint;
  *
  */
 public class HadoopIndexerOptions {
+	@SuppressWarnings("unused")
 	@Option(name="--type", aliases="-t", required=false, usage="Choose index type", handler=ProxyOptionHandler.class)
 	private IndexType indexType = IndexType.BASIC;
+	private IndexTypeOptions indexTypeOp = IndexType.BASIC.getOptions();
 	
 	@Option(name="--num-reducers", aliases="-nr", required=false, usage="set the number of reduce tasks")
 	private int numReducers = 26;
@@ -54,8 +57,8 @@ public class HadoopIndexerOptions {
 	/**
 	 * @return the indexType
 	 */
-	public IndexType getIndexType() {
-		return indexType;
+	public IndexTypeOptions getIndexType() {
+		return indexTypeOp;
 	}
 
 	/**

@@ -66,7 +66,12 @@ import org.terrier.querying.SearchRequest;
 import org.terrier.structures.Index;
 import org.terrier.utility.ApplicationSetup;
 
-
+/**
+ * The ImageTerrier BasicSearcher tool. Allows an index to be loaded and searched.
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+ *
+ */
 public class BasicSearcher {	
 	static {
 		BasicTerrierConfig.configure();
@@ -90,7 +95,7 @@ public class BasicSearcher {
 		SearchRequest request = manager.newSearchRequest("foo");
 		request.setQuery(q);
 		options.getMatchingModelType().configureRequest(request, q);
-		ApplicationSetup.setProperty("matching.dsms", options.getScoreModifierType().getScoreModifierClass(index.getInvertedIndex()));
+		ApplicationSetup.setProperty("matching.dsms", options.getScoreModifierTypeOptions().getScoreModifierClass(index.getInvertedIndex()));
 		
 		ApplicationSetup.setProperty("ignore.low.idf.terms","false");
 		

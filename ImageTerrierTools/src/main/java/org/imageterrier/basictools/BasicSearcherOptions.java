@@ -32,6 +32,7 @@ import java.io.File;
 
 import org.imageterrier.toolopts.MatchingModelType;
 import org.imageterrier.toolopts.ScoreModifierType;
+import org.imageterrier.toolopts.ScoreModifierType.ScoreModifierTypeOptions;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.ProxyOptionHandler;
 
@@ -53,7 +54,8 @@ public class BasicSearcherOptions {
 	private int limit = 0;
 	
 	@Option(name="--score-modifier", aliases="-sm", required=false, usage="Use specified model for re-ranking results.", handler=ProxyOptionHandler.class)
-	private ScoreModifierType scoreModifier = ScoreModifierType.NONE;
+	protected ScoreModifierType scoreModifier = ScoreModifierType.NONE;
+	private ScoreModifierTypeOptions scoreModifierOp = ScoreModifierType.NONE.getOptions();
 	
 	@Option(name="-matching-model", aliases="-mm", required=false, usage="Choose matching model",handler=ProxyOptionHandler.class)
 	private MatchingModelType matchingModel = MatchingModelType.TFIDF;
@@ -122,6 +124,10 @@ public class BasicSearcherOptions {
 	
 	public boolean displayResults() {
 		return displayResults;
+	}
+	
+	public ScoreModifierTypeOptions getScoreModifierTypeOptions() {
+		return scoreModifierOp;
 	}
 	
 	public ScoreModifierType getScoreModifierType() {

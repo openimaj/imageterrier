@@ -36,8 +36,10 @@ import org.terrier.querying.SearchRequest;
 import org.terrier.utility.ApplicationSetup;
 
 
-/*
- * Ranking model
+/**
+ * Ranking models
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
  */
 public enum MatchingModelType {
 	TFIDF {

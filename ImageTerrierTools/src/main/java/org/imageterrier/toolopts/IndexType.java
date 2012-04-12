@@ -42,23 +42,83 @@ import org.terrier.utility.ArrayUtils;
 import org.terrier.utility.ExtendedArrayUtils;
 
 
-/*
+/**
  * Different types of index
+ * 
+ * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
  */
 public enum IndexType implements CmdLineOptionsProvider {
 	BASIC {
 		@Override
-		public ExtensibleSinglePassIndexer getIndexer(String indexPath, String indexName) {
-			return new BasicSinglePassIndexer(indexPath, indexName);				
+		public IndexTypeOptions getOptions() {
+			return new BasicOptions();
 		}
 	},
 	NEAREST_NEIGHBOUR {
 		@Override
-		public ExtensibleSinglePassIndexer getIndexer(String indexPath, String indexName) {
-			return new NNSinglePassIndexer(indexPath, indexName);	
+		public IndexTypeOptions getOptions() {
+			return new NNOptions();
 		}
 	},
 	POSITION {
+		@Override
+		public IndexTypeOptions getOptions() {
+			return new PositionOptions();
+		}
+	},
+	AFFINESIM {
+		@Override
+		public IndexTypeOptions getOptions() {
+			return new AffineSimOptions();
+		}
+	};
+	
+	@Override
+	public abstract IndexTypeOptions getOptions();
+
+	/**
+	 * Options for all modes
+	 * 
+	 * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+	 *
+	 */
+	public static abstract class IndexTypeOptions {
+		public abstract ExtensibleSinglePassIndexer getIndexer(String indexPath, String indexName) throws IOException;		
+	}
+	
+	/**
+	 * Options for BASIC mode
+	 * 
+	 * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+	 *
+	 */
+	public static class BasicOptions extends IndexTypeOptions {
+		@Override
+		public ExtensibleSinglePassIndexer getIndexer(String indexPath, String indexName) {
+			return new BasicSinglePassIndexer(indexPath, indexName);				
+		}
+	}
+	
+	/**
+	 * Options for NEAREST_NEIGHBOUR mode
+	 * 
+	 * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+	 *
+	 */
+	public static class NNOptions extends IndexTypeOptions {
+		@Override
+		public ExtensibleSinglePassIndexer getIndexer(String indexPath, String indexName) {
+			return new NNSinglePassIndexer(indexPath, indexName);	
+		}
+	}
+	
+	/**
+	 * Options for POSITION mode
+	 * 
+	 * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+	 *
+	 */
+	public static class PositionOptions extends IndexTypeOptions {
 		@Option(name="--nbits", aliases="-nb", required=false, usage="Comma separated number of bits per position entry")
 		private String nBitsStr = "";
 
@@ -86,19 +146,19 @@ public enum IndexType implements CmdLineOptionsProvider {
 			PositionSpec spec = new PositionSpec(posMode, bits,mins,maxs);
 			return new PositionSinglePassIndexer(indexPath, indexName, spec);	
 		}
-	},
-	AFFINESIM {
+	}
+	
+	/**
+	 * Options for AFFINESIM mode
+	 * 
+	 * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
+	 *
+	 */
+	public static class AffineSimOptions extends IndexTypeOptions {
 		@Override
 		public ExtensibleSinglePassIndexer getIndexer(String indexPath, String indexName) {
 			PositionSpec spec = new PositionSpec(PositionSpecMode.AFFINE_INDEX, new int[]{5}, new double[]{0}, new double[]{32});
 			return new PositionSinglePassIndexer(indexPath, indexName, spec);	
 		}
-	};
-
-	@Override
-	public Object getOptions() {
-		return this;
 	}
-	
-	public abstract ExtensibleSinglePassIndexer getIndexer(String indexPath, String indexName) throws IOException;
 }
