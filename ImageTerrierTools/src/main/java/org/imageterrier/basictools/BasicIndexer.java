@@ -240,7 +240,6 @@ public class BasicIndexer {
 			throw new UnsupportedOperationException("InputMode " + options.getInputMode() + " is not supported");
 		}
 		
-		
 		if (options.getSearchPaths().size() == 1) {
 			data.collection.setPathRegex(Pattern.quote(new File(options.getSearchPaths().get(0)).getAbsolutePath()), "");
 		}

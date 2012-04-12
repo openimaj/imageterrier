@@ -135,9 +135,6 @@ public class IndexStats {
 		}
 		;
 
-		@Override
-		public abstract ModeOp getOptions();
-
 		public interface ModeOp {
 			public abstract void execute(Index index) throws IOException;
 		}
