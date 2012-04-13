@@ -47,7 +47,9 @@ import org.imageterrier.querying.parser.QLFDocumentQuery;
 import org.imageterrier.structures.PositionInvertedIndex;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.openimaj.feature.local.list.MemoryLocalFeatureList;
 import org.openimaj.feature.local.quantised.QuantisedLocalFeature;
 import org.openimaj.image.feature.local.keypoints.quantised.QuantisedKeypoint;
@@ -67,6 +69,9 @@ import org.terrier.utility.ApplicationSetup;
  *
  */
 public class PositionIndexTest {
+	@Rule
+	public TemporaryFolder folder = new TemporaryFolder();
+	
 	static {
 		BasicTerrierConfig.configure(); //initialise terrier
 	}
@@ -82,9 +87,7 @@ public class PositionIndexTest {
 	 */
 	@Before
 	public void setup() throws IOException {
-		indexDir = File.createTempFile("terrier", "");
-		indexDir.delete();
-		indexDir.mkdir();
+		indexDir = folder.newFolder("terrier.idx");
 		
 		List<QLFDocument<QuantisedKeypoint>> docs = new ArrayList<QLFDocument<QuantisedKeypoint>>();
 		docs.add(new QLFDocument<QuantisedKeypoint>(MemoryLocalFeatureList.read(getClass().getResourceAsStream("/org/imageterrier/siftintensity/ukbench00000.jpg.loc"), QuantisedKeypoint.class), "00000", null));

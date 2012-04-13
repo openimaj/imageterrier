@@ -14,6 +14,7 @@ import org.imageterrier.locfile.QLFDocument;
 import org.imageterrier.querying.parser.QLFDocumentQuery;
 import org.imageterrier.toolopts.MatchingModelType;
 import org.imageterrier.toolopts.ScoreModifierType;
+import org.imageterrier.toolopts.ScoreModifierType.ScoreModifierTypeOptions;
 import org.imageterrier.tools.ImageClusterTool.ScoredImage;
 import org.imageterrier.tools.ImageClusterTool.ScoredImageList;
 import org.jgrapht.graph.DefaultEdge;
@@ -61,6 +62,7 @@ public class ImageClusterToolOptions {
 			String htmlHEAD = "<html><head></head><body>";
 			String htmlFOOT = "</body></html>";
 			String imgTMPL = "<img style='width:100px' src='%s'/>";
+			
 			@Override
 			public void outputCluster(List<Set<String>> imageClusters,PrintWriter clusterWriter) {
 				clusterWriter.println(htmlHEAD);
@@ -95,8 +97,10 @@ public class ImageClusterToolOptions {
 	@Option(name = "--image-directory", aliases = "-id", usage = "path containing every image in the index", required = false, metaVar = "path")
 	private File imageDirectory = null;
 	
+	@SuppressWarnings("unused")
 	@Option(name="--score-modifier", aliases="-sm", required=false, usage="Use specified model for re-ranking results.", handler=ProxyOptionHandler.class)
 	private ScoreModifierType scoreModifier = ScoreModifierType.NONE;
+	private ScoreModifierTypeOptions scoreModifierOp;
 	
 	@Option(name="-matching-model", aliases="-mm", required=false, usage="Choose matching model",handler=ProxyOptionHandler.class)
 	private MatchingModelType matchingModel = MatchingModelType.TFIDF;
@@ -222,8 +226,8 @@ public class ImageClusterToolOptions {
 		return index;
 	}
 	
-	public ScoreModifierType getScoreModifierType() {
-		return scoreModifier;
+	public ScoreModifierTypeOptions getScoreModifierType() {
+		return scoreModifierOp;
 	}
 	
 	public MatchingModelType getMatchingModelType() {

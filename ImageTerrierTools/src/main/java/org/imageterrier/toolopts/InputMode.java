@@ -42,7 +42,6 @@ public enum InputMode implements CmdLineOptionsProvider {
 		@Option(name = "--quant-file", aliases = "-q", usage = "path to quantiser file", required = false, metaVar = "path")
 		private String quantiserFile;
 		
-		@SuppressWarnings("unused")
 		@Option(name = "--quant-type", aliases = "-qt", usage = "Quantiser type. Defaults to AKM (FastKMeans)", required = false, metaVar = "type", handler=ProxyOptionHandler.class)
 		protected ClusterType quantiserType = ClusterType.FASTKMEANS;
 		public ClusterTypeOp quantiserTypeOp = (ClusterTypeOp) ClusterType.FASTKMEANS.getOptions();
@@ -50,7 +49,6 @@ public enum InputMode implements CmdLineOptionsProvider {
 		@Option(name = "--quant-exact", aliases = "-qe", usage = "Load the quantiser in exact mode or not", required = false, metaVar = "type", handler=ProxyOptionHandler.class)
 		public boolean quantiserExact = false;
 		
-		@SuppressWarnings("unused")
 		@Option(name = "--feature-type", aliases = "-ft", usage = "Feature type. Defaults to plain DoG/SIFT", required = false, metaVar = "type", handler=ProxyOptionHandler.class)
 		protected LocalFeatureMode featureType = LocalFeatureMode.SIFT;
 		public LocalFeatureModeOp featureTypeOp = LocalFeatureMode.SIFT.getOptions();

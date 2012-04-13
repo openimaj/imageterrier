@@ -33,7 +33,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map.Entry;
 
-import org.imageterrier.basictools.IndexStats.Mode.ModeOp;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineOptionsProvider;
 import org.kohsuke.args4j.CmdLineParser;
@@ -45,102 +44,102 @@ import org.terrier.structures.Lexicon;
 import org.terrier.structures.LexiconEntry;
 import org.terrier.structures.postings.IterablePosting;
 
+enum Mode implements CmdLineOptionsProvider {
+	TF {
+		@Override
+		public ModeOp getOptions() {
+			return new ModeOp() {
+				@Override
+				public void execute(Index index) {
+					Lexicon<String> lexicon = index.getLexicon();
+
+					for (Entry<String, LexiconEntry> le : lexicon) {
+						System.out.format("%s\t%d\t%d\n", le.getKey(), le.getValue().getDocumentFrequency(), le.getValue().getFrequency());
+					}
+				}
+			};
+		}
+	},
+	DOC {
+		@Override
+		public ModeOp getOptions() {
+			return new ModeOp() {
+				@Option(name="--docid", usage="document id")
+				private int docid = -1;
+
+				@Option(name="--key", usage="document metdata key")
+				private String key;
+
+				@Option(name="--value", usage="document metdata value")
+				private String value;
+
+				@Override
+				public void execute(Index index) throws IOException {
+					if ((docid>=0 & key==null & value==null) || (docid==-1 && (key!=null && value!=null))) {
+						if (docid==-1) {
+							docid = index.getMetaIndex().getDocument(key, value);
+						}
+
+						Lexicon<String> lexicon = index.getLexicon();
+
+						System.out.println(Arrays.toString(index.getMetaIndex().getAllItems(docid)));
+
+						for (Entry<String, LexiconEntry> le : lexicon) {
+							IterablePosting posting = index.getInvertedIndex().getPostings((BitIndexPointer) le.getValue());
+
+							while (posting.next() != IterablePosting.EOL) {
+								if (posting.getId() == docid)
+									System.out.println(le.getKey() + "\t" + posting.getFrequency());
+							}
+						}
+					} else {
+						System.err.println("Either docid or both key and value must be given.");
+					}
+				}
+			};
+		}
+	},
+	COUNT {
+		@Override
+		public ModeOp getOptions() {
+			return new ModeOp() {
+				@Override
+				public void execute(Index index) throws IOException {
+					int ndocs = index.getDocumentIndex().getNumberOfDocuments();
+
+					Lexicon<String> lexicon = index.getLexicon();
+
+					for (int i=0; i<ndocs; i++) {
+						int count = 0;
+
+						for (Entry<String, LexiconEntry> le : lexicon) {
+							IterablePosting posting = index.getInvertedIndex().getPostings((BitIndexPointer) le.getValue());
+
+							while (posting.next() != IterablePosting.EOL) {
+								if (posting.getId() == i)
+									count += posting.getFrequency() ;
+							}
+						}
+
+						System.out.println(index.getMetaIndex().getItem("docno", i) + " " + index.getDocumentIndex().getDocumentEntry(i).getDocumentLength() + " " + count);
+					}
+				}					
+			};
+		}			
+	}
+	;
+
+	@Override
+	public abstract ModeOp getOptions();
+}
+
+interface ModeOp {
+	public abstract void execute(Index index) throws IOException;
+}
+
 public class IndexStats {
 	static {
 		BasicTerrierConfig.configure();
-	}
-
-	enum Mode implements CmdLineOptionsProvider {
-		TF {
-			@Override
-			public ModeOp getOptions() {
-				return new ModeOp() {
-					@Override
-					public void execute(Index index) {
-						Lexicon<String> lexicon = index.getLexicon();
-
-						for (Entry<String, LexiconEntry> le : lexicon) {
-							System.out.format("%s\t%d\t%d\n", le.getKey(), le.getValue().getDocumentFrequency(), le.getValue().getFrequency());
-						}
-					}
-				};
-			}
-		},
-		DOC {
-			@Override
-			public ModeOp getOptions() {
-				return new ModeOp() {
-					@Option(name="--docid", usage="document id")
-					private int docid = -1;
-
-					@Option(name="--key", usage="document metdata key")
-					private String key;
-
-					@Option(name="--value", usage="document metdata value")
-					private String value;
-
-					@Override
-					public void execute(Index index) throws IOException {
-						if ((docid>=0 & key==null & value==null) || (docid==-1 && (key!=null && value!=null))) {
-							if (docid==-1) {
-								docid = index.getMetaIndex().getDocument(key, value);
-							}
-
-							Lexicon<String> lexicon = index.getLexicon();
-
-							System.out.println(Arrays.toString(index.getMetaIndex().getAllItems(docid)));
-
-							for (Entry<String, LexiconEntry> le : lexicon) {
-								IterablePosting posting = index.getInvertedIndex().getPostings((BitIndexPointer) le.getValue());
-
-								while (posting.next() != IterablePosting.EOL) {
-									if (posting.getId() == docid)
-										System.out.println(le.getKey() + "\t" + posting.getFrequency());
-								}
-							}
-						} else {
-							System.err.println("Either docid or both key and value must be given.");
-						}
-					}
-				};
-			}
-		},
-		COUNT {
-			@Override
-			public ModeOp getOptions() {
-				return new ModeOp() {
-					@Override
-					public void execute(Index index) throws IOException {
-						int ndocs = index.getDocumentIndex().getNumberOfDocuments();
-
-						Lexicon<String> lexicon = index.getLexicon();
-
-						for (int i=0; i<ndocs; i++) {
-							int count = 0;
-
-							for (Entry<String, LexiconEntry> le : lexicon) {
-								IterablePosting posting = index.getInvertedIndex().getPostings((BitIndexPointer) le.getValue());
-
-								while (posting.next() != IterablePosting.EOL) {
-									if (posting.getId() == i)
-										count += posting.getFrequency() ;
-								}
-							}
-
-							System.out.println(index.getMetaIndex().getItem("docno", i) + " " + index.getDocumentIndex().getDocumentEntry(i).getDocumentLength() + " " + count);
-						}
-					}					
-				};
-			}			
-		}
-		;
-
-		@Override
-		public abstract ModeOp getOptions();
-
-		public interface ModeOp {
-			public abstract void execute(Index index) throws IOException;
-		}
 	}
 
 	@Option(name = "--index", aliases="-i", usage="index to inspect", required=true)

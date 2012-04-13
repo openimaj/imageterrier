@@ -92,8 +92,7 @@
 		<dependency>
 			<groupId>org.openimaj</groupId>
 			<artifactId>ImprovedArgs4J</artifactId>
-			<version>1.0.6-SNAPSHOT</version>
-			<scope>compile</scope>
+			<version>${openimaj.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>jline</groupId>
