@@ -132,6 +132,14 @@
 	</build>
 	<repositories>
 		<repository>
+			<snapshots>
+			  <enabled>true</enabled>
+			</snapshots>
+			<id>openimaj-snapshots</id>
+			<name>openimaj-snapshots</name>
+			<url>http://octopussy.ecs.soton.ac.uk/m2/snapshots</url>
+		</repository>
+		<repository>
 			<id>Octopussy releases repository</id>
 			<url>http://octopussy.ecs.soton.ac.uk/m2/releases</url>
 		</repository>
