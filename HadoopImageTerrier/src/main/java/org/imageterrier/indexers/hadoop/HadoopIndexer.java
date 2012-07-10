@@ -63,7 +63,12 @@ import org.openimaj.feature.local.list.MemoryLocalFeatureList;
 import org.openimaj.feature.local.quantised.QuantisedLocalFeature;
 import org.openimaj.hadoop.tools.clusterquantiser.HadoopClusterQuantiserOptions;
 import org.openimaj.io.IOUtils;
-import org.openimaj.ml.clustering.Cluster;
+import org.openimaj.ml.clustering.SpatialClusterer;
+import org.openimaj.ml.clustering.assignment.HardAssigner;
+import org.openimaj.ml.clustering.assignment.hard.ApproximateByteEuclideanAssigner;
+import org.openimaj.ml.clustering.assignment.hard.ApproximateIntEuclideanAssigner;
+import org.openimaj.ml.clustering.kmeans.fast.FastByteKMeans;
+import org.openimaj.ml.clustering.kmeans.fast.FastIntKMeans;
 import org.terrier.indexing.AbstractHadoopIndexer;
 import org.terrier.indexing.Document;
 import org.terrier.indexing.ExtensibleSinglePassIndexer;
@@ -120,12 +125,13 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 	static class MTImageIndexerMapper extends HadoopIndexerMapper<BytesWritable> {
 		protected static Class<? extends QuantisedLocalFeature<?>> featureClass;
 		protected static HadoopIndexerOptions options;
-		private static Cluster<?, ?> quantiser;
+		private static SpatialClusterer<?, ?> clusters;
+		private static HardAssigner<?,?,?> assigner;
 		private static TLongArrayList threads = new TLongArrayList();
 		private int threadID;
 		
 		private static synchronized ExtensibleSinglePassIndexer setupIndexer(Context context) throws IOException {
-			if (quantiser == null) {
+			if (clusters == null) {
 				options = getOptions(context.getConfiguration());
 				
 				featureClass = options.getFeatureClass();
@@ -135,8 +141,18 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 				options.getInputModeOptions().quantiserTypeOp = HadoopClusterQuantiserOptions.sniffClusterType(codebookURL);
 				
 				if (options.getInputModeOptions().getQuantiserType() != null)
-					quantiser = IOUtils.read(HadoopClusterQuantiserOptions.getClusterInputStream(codebookURL), options.getInputModeOptions().getQuantiserType().getClusterClass());
-				quantiser.optimize(options.getInputModeOptions().quantiserExact);
+					clusters = IOUtils.read(HadoopClusterQuantiserOptions.getClusterInputStream(codebookURL), options.getInputModeOptions().getQuantiserType().getClusterClass());
+				
+				if (!options.getInputModeOptions().quantiserExact) {
+					assigner = clusters.defaultHardAssigner();
+				} else {
+					if (clusters instanceof FastByteKMeans)
+						assigner = new ApproximateByteEuclideanAssigner((FastByteKMeans) clusters);
+					else if (clusters instanceof FastIntKMeans)
+						assigner = new ApproximateIntEuclideanAssigner((FastIntKMeans) clusters);
+					else 
+						assigner = clusters.defaultHardAssigner();
+				}
 				System.out.println("Done!");
 			}
 			return options.getIndexType().getIndexer(null, null);
@@ -192,14 +208,14 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 				logger.info("Quantising features...");
 				//quantise features
 				LocalFeatureList<QuantisedLocalFeature<?>> qkeys = new MemoryLocalFeatureList<QuantisedLocalFeature<?>>(features.size());
-				if (quantiser.getClusters() instanceof byte[][]) {
+				if (clusters.getClass().getName().contains("Byte")) {
 					for (LocalFeature k : features) {
-						int id = ((Cluster<?,byte[]>)quantiser).push_one((byte[])k.getFeatureVector().getVector());
+						int id = ((HardAssigner<byte[],?,?>)assigner).assign((byte[])k.getFeatureVector().getVector());
 						qkeys.add(new QuantisedLocalFeature(k.getLocation(), id));
 					}
 				} else {
 					for (LocalFeature k : features) {
-						int id = ((Cluster<?,int[]>)quantiser).push_one((int[])k.getFeatureVector().getVector());
+						int id = ((HardAssigner<int[],?,?>)assigner).assign((int[])k.getFeatureVector().getVector());
 						qkeys.add(new QuantisedLocalFeature(k.getLocation(), id));
 					}
 				}
@@ -225,7 +241,7 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 		protected Class<? extends QuantisedLocalFeature<?>> featureClass;
 		protected HadoopIndexerOptions options;
 		private ExecutorService service;
-		private static Cluster<?, ?> quantiser;
+		private static HardAssigner<?, ?, ?> assigner;
 		
 		@Override
 		protected void map(Text key, BytesWritable value, final Context context) throws IOException, InterruptedException {
@@ -314,14 +330,14 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 				logger.info("Quantising features...");
 				//quantise features
 				LocalFeatureList<QuantisedLocalFeature<?>> qkeys = new MemoryLocalFeatureList<QuantisedLocalFeature<?>>(features.size());
-				if (quantiser.getClusters() instanceof byte[][]) {
+				if (assigner.getClass().getName().contains("Byte")) {
 					for (LocalFeature k : features) {
-						int id = ((Cluster<?,byte[]>)quantiser).push_one((byte[])k.getFeatureVector().getVector());
+						int id = ((HardAssigner<byte[],?,?>)assigner).assign((byte[])k.getFeatureVector().getVector());
 						qkeys.add(new QuantisedLocalFeature(k.getLocation(), id));
 					}
 				} else {
 					for (LocalFeature k : features) {
-						int id = ((Cluster<?,int[]>)quantiser).push_one((int[])k.getFeatureVector().getVector());
+						int id = ((HardAssigner<int[],?,?>)assigner).assign((int[])k.getFeatureVector().getVector());
 						qkeys.add(new QuantisedLocalFeature(k.getLocation(), id));
 					}
 				}
@@ -337,28 +353,42 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 		}
 
 		private static synchronized void loadQuantiser(HadoopIndexerOptions options,boolean optimise) throws IOException {
-			if (quantiser == null) {
-				quantiser = readQuantiser(options,optimise);
+			if (assigner == null) {
+				assigner = readQuantiser(options, readClusters(options));
 			}
 		}
 
 		
 	}
 	
-	protected static Cluster<?, ?> readQuantiser(HadoopIndexerOptions options,boolean optimise) throws IOException {
-		Cluster<?, ?> quantiser = null;
+	protected static SpatialClusterer<?, ?> readClusters(HadoopIndexerOptions options) throws IOException {
+		SpatialClusterer<?, ?> clusters = null;
 		System.out.println("Loading codebook...");
 		String codebookURL = options.getInputModeOptions().getQuantiserFile();
 		options.getInputModeOptions().quantiserTypeOp = HadoopClusterQuantiserOptions.sniffClusterType(codebookURL);
 		
 		if (options.getInputModeOptions().getQuantiserType() != null)
 		{
-			quantiser = IOUtils.read(HadoopClusterQuantiserOptions.getClusterInputStream(codebookURL), options.getInputModeOptions().getQuantiserType().getClusterClass());
-			if(optimise)
-				quantiser.optimize(options.getInputModeOptions().quantiserExact);
+			clusters = IOUtils.read(HadoopClusterQuantiserOptions.getClusterInputStream(codebookURL), options.getInputModeOptions().getQuantiserType().getClusterClass());
 		}
+		return clusters;
+	}
+	
+	protected static HardAssigner<?, ?, ?> readQuantiser(HadoopIndexerOptions options, SpatialClusterer<?,?> clusters) throws IOException {
+		HardAssigner<?, ?, ?> assigner = null;
+		if (!options.getInputModeOptions().quantiserExact) {
+			assigner = clusters.defaultHardAssigner();
+		} else {
+			if (clusters instanceof FastByteKMeans)
+				assigner = new ApproximateByteEuclideanAssigner((FastByteKMeans) clusters);
+			else if (clusters instanceof FastIntKMeans)
+				assigner = new ApproximateIntEuclideanAssigner((FastIntKMeans) clusters);
+			else 
+				assigner = clusters.defaultHardAssigner();
+		}
+		
 		System.out.println("Done!");
-		return quantiser;
+		return assigner;
 		
 	}
 	/**
@@ -410,11 +440,11 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 		String quantFile = options.getInputModeOptions().getQuantiserFile();
 		if(quantFile!=null){
 			System.out.println("Loading codebook to see its size");
-			Cluster<?, ?> quantiser = readQuantiser(options,false);
-			System.out.println("Setting codebook size: " + quantiser.getNumberClusters());
-			job.getConfiguration().setInt(QUANTISER_SIZE, quantiser.getNumberClusters());
-			if(quantiser.getNumberClusters() < options.getNumReducers())
-				options.setNumReducers(quantiser.getNumberClusters());
+			SpatialClusterer<?,?> quantiser = readClusters(options);
+			System.out.println("Setting codebook size: " + quantiser.numClusters());
+			job.getConfiguration().setInt(QUANTISER_SIZE, quantiser.numClusters());
+			if(quantiser.numClusters() < options.getNumReducers())
+				options.setNumReducers(quantiser.numClusters());
 		}
 		job.setReducerClass(IndexerReducer.class);
 

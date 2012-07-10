@@ -58,7 +58,13 @@ import org.openimaj.image.DisplayUtilities;
 import org.openimaj.image.ImageUtilities;
 import org.openimaj.image.MBFImage;
 import org.openimaj.math.geometry.shape.Rectangle;
-import org.openimaj.ml.clustering.Cluster;
+import org.openimaj.ml.clustering.CentroidsProvider;
+import org.openimaj.ml.clustering.SpatialClusterer;
+import org.openimaj.ml.clustering.assignment.Assigner;
+import org.openimaj.ml.clustering.assignment.HardAssigner;
+import org.openimaj.ml.clustering.assignment.SoftAssigner;
+import org.openimaj.ml.clustering.assignment.soft.ByteKNNAssigner;
+import org.openimaj.ml.clustering.assignment.soft.IntKNNAssigner;
 import org.openimaj.tools.localfeature.LocalFeatureMode;
 import org.terrier.matching.ResultSet;
 import org.terrier.querying.Manager;
@@ -78,40 +84,41 @@ public class BasicSearcher {
 	}
 
 	protected Index index;
-	protected Cluster<?,?> cluster;
-	
+	protected SpatialClusterer<?,?> cluster;
+	private HardAssigner<?, ?, ?> hardAssigner;
+
 	public BasicSearcher(BasicSearcherOptions options) {
 		File filename = options.getIndex();
 		String filenameStr = filename.getAbsolutePath();
 		index = Index.createIndex(filenameStr, "index");
-		
-		getQuantizer(); //preload the quantizer
+
+		getClusters(); //preload the quantizer
 	}
-	
+
 	public <T extends QuantisedLocalFeature<?>> ResultSet search(QLFDocument<T> query, BasicSearcherOptions options) {
 		QLFDocumentQuery<T> q = new QLFDocumentQuery<T>(query);
-		
+
 		Manager manager = new Manager(index);
 		SearchRequest request = manager.newSearchRequest("foo");
 		request.setQuery(q);
 		options.getMatchingModelType().configureRequest(request, q);
 		ApplicationSetup.setProperty("matching.dsms", options.getScoreModifierTypeOptions().getScoreModifierClass(index.getInvertedIndex()));
-		
+
 		ApplicationSetup.setProperty("ignore.low.idf.terms","false");
-		
+
 		if (options.getLimit() == 0)
 			ApplicationSetup.setProperty("matching.retrieved_set_size", ""+index.getCollectionStatistics().getNumberOfDocuments());
 		else
 			ApplicationSetup.setProperty("matching.retrieved_set_size", ""+options.getLimit());
-		
+
 		manager.runPreProcessing(request);
 		manager.runMatching(request);
 		manager.runPostProcessing(request);
 		manager.runPostFilters(request);
-		
+
 		return request.getResultSet();
 	}
-	
+
 	public String getDocumentId(int docno) {
 		try {
 			return index.getMetaIndex().getItem("docno", docno);
@@ -126,78 +133,95 @@ public class BasicSearcher {
 	public File getFile(int docid) throws IOException {
 		return new File(index.getIndexProperty("index.image.base.path", "/") + index.getMetaIndex().getItem("path", docid).replace(".fv.loc", ""));
 	}
-	
-	public Cluster<?,?> getQuantizer() {
+
+	public SpatialClusterer<?,?> getClusters() {
 		if (cluster == null) {
-			cluster = (Cluster<?,?>) ((QuantiserIndex)index.getIndexStructure("featureQuantiser")).getQuantiser();
-			cluster.optimize(false);
+			cluster = (SpatialClusterer<?,?>) ((QuantiserIndex)index.getIndexStructure("featureQuantiser")).getQuantiser();
 		}
 		return cluster;
 	}
 
+	@SuppressWarnings("unchecked")
+	public Assigner<?> getQuantizer(int softNeighbours) {
+		if (softNeighbours > 0) {
+			SpatialClusterer<?, ?> clusters = getClusters();
+			
+			if (clusters.getClass().getName().contains("Byte")) {
+				return new ByteKNNAssigner((CentroidsProvider<byte[]>) clusters, false, softNeighbours);
+			} else {
+				return new IntKNNAssigner((CentroidsProvider<int[]>) clusters, false, softNeighbours);
+			}
+		} else {
+			if (hardAssigner == null) {
+				hardAssigner = getClusters().defaultHardAssigner();
+			}
+			return hardAssigner;
+		}
+	}
+
 	public ResultSet search(File imageFile, int [] coords, BasicSearcherOptions options) throws Exception {
-		Cluster<?,?> quantizer = getQuantizer();
-		
+		Assigner<?> quantizer = getQuantizer(options.getSoftQuantNeighbours());
+
 		long t1 = System.currentTimeMillis();
-		
+
 		//process the image
 		LocalFeatureMode mode = LocalFeatureMode.valueOf(index.getIndexProperty("index.feature.type", ""));
 		LocalFeatureList<?> features = FeatureTask.computeFeatures(imageFile, mode.getOptions());
-		
+
 		LocalFeatureList<QuantisedLocalFeature<?>> qfeatures;
 		if (options.getSoftQuantNeighbours() == 0)
-			qfeatures = QuantiserTask.quantiseFeatures(quantizer, features);
+			qfeatures = QuantiserTask.quantiseFeatures((HardAssigner<?,?,?>) quantizer, features);
 		else
-			qfeatures = QuantiserTask.quantiseFeaturesSoft(quantizer, features, options.getSoftQuantNeighbours());
-		
+			qfeatures = QuantiserTask.quantiseFeaturesSoft((SoftAssigner<?, ?>) quantizer, features);
+
 		QLFDocument<QuantisedLocalFeature<?>> d = new QLFDocument<QuantisedLocalFeature<?>>(qfeatures, "query", null);
-		
+
 		if (coords != null) {
 			Rectangle r = new Rectangle(coords[0], coords[1], coords[2], coords[3]);
 			d.filter(r);
 		}
-		
+
 		long t2 = System.currentTimeMillis();
-		
+
 		ResultSet rs = search(d, options);
-		
+
 		long t3 = System.currentTimeMillis();
-		
+
 		if (options.timeQuery()) {
 			System.out.println("[INFO] Feature extraction took:	" + ((t2-t1) / 1000.0) + " secs");
 			System.out.println("[INFO] Search took:				" + ((t3-t2) / 1000.0) + " secs");
 		}
-		
+
 		return rs;
 	}
-	
+
 	public void printResultSet(ResultSet rs, int limit) throws IOException {
 		if (limit<=0) limit = rs.getDocids().length;
-		
+
 		for (int i=0; i<limit; i++) {
 			File file = getFile(rs.getDocids()[i]);
 
 			if (rs.getScores()[i] <= 0) break; //filter 0 results 
-			
+
 			System.out.format("%s\t%f\n", file, rs.getScores()[i]);
 		}
 	}
-	
+
 	public void displayResults(String title, ResultSet rs, int limit) throws IOException {
 		if (limit<=0) limit = rs.getDocids().length;
 		List<File> files = new ArrayList<File>();
-		
+
 		for (int i=0; i<limit; i++) {
 			File file = getFile(rs.getDocids()[i]);
 
 			if (rs.getScores()[i] <= 0) break; //filter 0 results 
-			
+
 			files.add(file);
 		}
-		
+
 		displayImage(title, files.toArray(new File[files.size()]));
 	}
-	
+
 	public void displayImage(String title, File... images) {
 		if (images.length == 1) {
 			try {
@@ -217,7 +241,7 @@ public class BasicSearcher {
 			DisplayUtilities.display(title, bimages.toArray(new MBFImage[bimages.size()]));
 		}
 	}
-	
+
 	/**
 	 * @param args
 	 * @throws Exception 
@@ -225,14 +249,14 @@ public class BasicSearcher {
 	public static void main(String[] args) throws Exception {
 		BasicSearcherOptions options = new BasicSearcherOptions();
 		CmdLineParser parser = new CmdLineParser(options);
-		
-	    try {
-		    parser.parseArgument(args);
+
+		try {
+			parser.parseArgument(args);
 		} catch(CmdLineException e) {
-		    System.err.println(e.getMessage());
-		    System.err.println("Usage: java -jar ImageTerrier.jar [options...]");
-		    parser.printUsage(System.err);
-		    return;
+			System.err.println(e.getMessage());
+			System.err.println("Usage: java -jar ImageTerrier.jar [options...]");
+			parser.printUsage(System.err);
+			return;
 		}
 
 		BasicSearcher searcher = new BasicSearcher(options);
@@ -241,10 +265,10 @@ public class BasicSearcher {
 			if (options.getQueryImage() == null) {
 				System.err.println("Error: No query image provided.");
 				System.err.println("Usage: java -jar ImageTerrier.jar [options...]");
-			    parser.printUsage(System.err);
+				parser.printUsage(System.err);
 				return;
 			}
-			
+
 			if (options.getQueryImage().isDirectory()) {
 				for (File f : options.getQueryImage().listFiles()) {
 					try {
@@ -258,10 +282,10 @@ public class BasicSearcher {
 			} else {
 				if (options.displayQuery())
 					searcher.displayImage("Query:  " + options.getQueryImage(), options.getQueryImage());
-			
+
 				ResultSet rs = searcher.search(options.getQueryImage(), options.getRoiCoords(), options); 
 				searcher.printResultSet(rs, options.getLimit());
-			
+
 				if (options.displayResults())
 					searcher.displayResults("Results:  " + options.getQueryImage(), rs, options.getLimit());
 			}
@@ -276,10 +300,10 @@ public class BasicSearcher {
 					PropertyHandlerMapping mapping = (PropertyHandlerMapping) super.newXmlRpcHandlerMapping();
 					XmlRpcSystemImpl.addSystemHandler(mapping);
 					return mapping;
-                }
+				}
 			};
-	        ServletWebServer webServer = new ServletWebServer(servlet, options.serverPort());
-	        webServer.start();
+			ServletWebServer webServer = new ServletWebServer(servlet, options.serverPort());
+			webServer.start();
 		} else {
 			//interactive mode -- useful for debugging
 			//Note to self: jline is awesome!
@@ -289,65 +313,65 @@ public class BasicSearcher {
 			cr.addCompletor(ac);
 			while (true) {
 				String cmd = cr.readLine("query> ").trim();
-			
+
 				if (cmd.length() == 0)
 					continue;
-			
+
 				if (cmd.equals("exit") || cmd.equals("quit"))
 					break;				
-				
+
 				if (!cmd.contains("-i ")) cmd += " -i " + options.getIndex();
 				BasicSearcherOptions interactiveOptions = new BasicSearcherOptions();
 				CmdLineParser interactiveParser = new CmdLineParser(interactiveOptions);
-				
-			    try {
-			    	interactiveParser.parseArgument(cmd.split("\\s+"));
-			    	
-			    	if (interactiveOptions.getQueryImage() == null) {
-			    		System.out.println("Error: No query image specified.");
-			    		continue;
-			    	}
-			    	
-			    	if (!interactiveOptions.getIndex().equals(options.getIndex())) {
-			    		//reload index
-			    		searcher = new BasicSearcher(interactiveOptions);
-			    		options = interactiveOptions;
-			    	}
-			    	
-			    	//print a description of the query
-			    	System.out.print("SELECT IMG_FILE, SCORE FROM " + interactiveOptions.getIndex() + " WHERE IMG");
-			    	if (interactiveOptions.getScoreModifierType() != ScoreModifierType.NONE) {
-			    		System.out.print(" CONTAINS ");
-			    	} else {
-			    		System.out.print(" IS_SIMILAR_TO ");
-			    	}
-			    	System.out.print(interactiveOptions.getQueryImage());
-			    	if (interactiveOptions.getRoiCoordsString() != null) 
-			    		System.out.print("(" + interactiveOptions.getRoiCoordsString() + ")");
-			    	if (interactiveOptions.getLimit() != 0) {
-			    		System.out.print(" LIMIT " + interactiveOptions.getLimit());
-			    	} else if (options.getLimit() != 0) {
-			    		System.out.print(" LIMIT " + options.getLimit());
-			    	}
-			    	System.out.println();
-			    	
-			    	int limit = options.getLimit();
-			    	if (interactiveOptions.getLimit() != 0) limit = interactiveOptions.getLimit();
-			    	
-			    	if (interactiveOptions.displayQuery())
+
+				try {
+					interactiveParser.parseArgument(cmd.split("\\s+"));
+
+					if (interactiveOptions.getQueryImage() == null) {
+						System.out.println("Error: No query image specified.");
+						continue;
+					}
+
+					if (!interactiveOptions.getIndex().equals(options.getIndex())) {
+						//reload index
+						searcher = new BasicSearcher(interactiveOptions);
+						options = interactiveOptions;
+					}
+
+					//print a description of the query
+					System.out.print("SELECT IMG_FILE, SCORE FROM " + interactiveOptions.getIndex() + " WHERE IMG");
+					if (interactiveOptions.getScoreModifierType() != ScoreModifierType.NONE) {
+						System.out.print(" CONTAINS ");
+					} else {
+						System.out.print(" IS_SIMILAR_TO ");
+					}
+					System.out.print(interactiveOptions.getQueryImage());
+					if (interactiveOptions.getRoiCoordsString() != null) 
+						System.out.print("(" + interactiveOptions.getRoiCoordsString() + ")");
+					if (interactiveOptions.getLimit() != 0) {
+						System.out.print(" LIMIT " + interactiveOptions.getLimit());
+					} else if (options.getLimit() != 0) {
+						System.out.print(" LIMIT " + options.getLimit());
+					}
+					System.out.println();
+
+					int limit = options.getLimit();
+					if (interactiveOptions.getLimit() != 0) limit = interactiveOptions.getLimit();
+
+					if (interactiveOptions.displayQuery())
 						searcher.displayImage("Query:  " + interactiveOptions.getQueryImage(), interactiveOptions.getQueryImage());
-					
+
 					ResultSet rs = searcher.search(interactiveOptions.getQueryImage(), interactiveOptions.getRoiCoords(), interactiveOptions); 
 					searcher.printResultSet(rs, limit);
-					
+
 					if (interactiveOptions.displayResults())
 						searcher.displayResults("Results:  " + interactiveOptions.getQueryImage(), rs, limit);
-			    } catch (CmdLineException cle) {
-			    	System.out.println("Syntax error:" + cle.getMessage());
-			    } catch (Exception e) {
-			    	e.printStackTrace();
-			    	System.out.println("Error: " + e.getMessage());
-			    }
+				} catch (CmdLineException cle) {
+					System.out.println("Syntax error:" + cle.getMessage());
+				} catch (Exception e) {
+					e.printStackTrace();
+					System.out.println("Error: " + e.getMessage());
+				}
 			}
 		}
 	}

@@ -51,7 +51,7 @@ import org.openimaj.image.feature.local.keypoints.Keypoint;
 import org.openimaj.image.feature.local.keypoints.quantised.QuantisedAffineSimulationKeypoint;
 import org.openimaj.image.feature.local.keypoints.quantised.QuantisedKeypoint;
 import org.openimaj.io.IOUtils;
-import org.openimaj.ml.clustering.Cluster;
+import org.openimaj.ml.clustering.SpatialClusterer;
 import org.openimaj.tools.clusterquantiser.ClusterQuantiser;
 import org.openimaj.tools.clusterquantiser.ClusterQuantiserOptions;
 import org.openimaj.tools.clusterquantiser.ClusterType;
@@ -103,12 +103,13 @@ public class BasicIndexer {
 	}
 	
 	class ProcessData {
-		public ProcessData(QLFFilesCollection<? extends QuantisedLocalFeature<?>> collection, Cluster<?, ?> cluster) {
+		QLFFilesCollection<? extends QuantisedLocalFeature<?>> collection;
+		SpatialClusterer<?,?> cluster;
+		
+		public ProcessData(QLFFilesCollection<? extends QuantisedLocalFeature<?>> collection, SpatialClusterer<?, ?> cluster) {
 			this.collection = collection;
 			this.cluster = cluster;
 		}
-		QLFFilesCollection<? extends QuantisedLocalFeature<?>> collection;
-		Cluster<?,?> cluster;
 	}
 	
 	protected ProcessData processFiles(BasicIndexerOptions toolOpts) throws IOException {
@@ -132,7 +133,7 @@ public class BasicIndexer {
 		if (toolOpts.isVerbose()) System.err.println("Loading quantiser");
 		options.quantiserTypeOp = ClusterType.sniffClusterType(new File(options.getQuantiserFile()));
 		
-		Cluster<?, ?> cluster = null;
+		SpatialClusterer<?, ?> cluster = null;
 		if (options.quantiserTypeOp != null)
 			cluster = IOUtils.read(new File(options.getQuantiserFile()), options.getQuantiserType().getClusterClass());
 		
@@ -160,7 +161,7 @@ public class BasicIndexer {
 		List<Future<File>> featureFutures = es.invokeAll(featureTasks);
 
 		//Create or load quantiser
-		Cluster<?,?> cluster;
+		SpatialClusterer<?,?> cluster;
 		if (options.getQuantiserFile() != null && new File(options.getQuantiserFile()).exists()) {
 			if (toolOpts.isVerbose()) System.err.println("Loading quantiser");
 			
@@ -188,7 +189,6 @@ public class BasicIndexer {
 			
 			IOUtils.writeBinary(new File(options.getQuantiserFile()), cluster);
 		}
-		cluster.optimize(false);
 		
 		//Make terms and save files [equivalent to direct index]
 		if (toolOpts.isVerbose()) System.err.println("Quantising features");

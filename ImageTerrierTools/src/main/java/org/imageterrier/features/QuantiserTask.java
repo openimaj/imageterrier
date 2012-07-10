@@ -38,7 +38,9 @@ import org.openimaj.feature.local.list.LocalFeatureList;
 import org.openimaj.feature.local.list.MemoryLocalFeatureList;
 import org.openimaj.feature.local.quantised.QuantisedLocalFeature;
 import org.openimaj.io.IOUtils;
-import org.openimaj.ml.clustering.Cluster;
+import org.openimaj.ml.clustering.SpatialClusterer;
+import org.openimaj.ml.clustering.assignment.HardAssigner;
+import org.openimaj.ml.clustering.assignment.SoftAssigner;
 
 
 public class QuantiserTask implements Callable<File> {
@@ -47,13 +49,15 @@ public class QuantiserTask implements Callable<File> {
 	protected boolean forceRegeneration;
 	protected File featureFile;
 	protected Class<? extends LocalFeature<?>> featureClz;
-	protected Cluster<?,?> quantizer;
+	protected SpatialClusterer<?,?> quantizer;
+	protected HardAssigner<?,?,?> hardAssigner;
 
-	public QuantiserTask(File featureFile, boolean forceRegeneration, Class<? extends LocalFeature<?>> featureClz, Cluster<?,?> cluster) {
+	public QuantiserTask(File featureFile, boolean forceRegeneration, Class<? extends LocalFeature<?>> featureClz, SpatialClusterer<?,?> cluster) {
 		this.featureFile = featureFile;
 		this.forceRegeneration = forceRegeneration;
 		this.featureClz = featureClz;
-		this.quantizer = cluster; 
+		this.quantizer = cluster;
+		this.hardAssigner = cluster.defaultHardAssigner();
 	}
 	
 	public File getLocFile() {
@@ -84,7 +88,7 @@ public class QuantiserTask implements Callable<File> {
 		
 		//Quantise the sift feature
 		logger.info("Generating visual terms for " + featureFile.getName());
-		LocalFeatureList<QuantisedLocalFeature<?>> keyLoc = quantiseFeatures(quantizer, keys);
+		LocalFeatureList<QuantisedLocalFeature<?>> keyLoc = quantiseFeatures(hardAssigner, keys);
 		
 		//Save the loc file
 		IOUtils.writeBinary(filename, keyLoc);
@@ -93,17 +97,17 @@ public class QuantiserTask implements Callable<File> {
 	}
 	
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public static LocalFeatureList<QuantisedLocalFeature<?>> quantiseFeatures(Cluster<?,?> quantizer, List<? extends LocalFeature> keys) {
+	public static LocalFeatureList<QuantisedLocalFeature<?>> quantiseFeatures(HardAssigner quantizer, List<? extends LocalFeature> keys) {
 		LocalFeatureList<QuantisedLocalFeature<?>> qkeys = new MemoryLocalFeatureList<QuantisedLocalFeature<?>>(keys.size());
 		
-		if (quantizer.getClusters() instanceof byte[][]) {
+		if (quantizer.getClass().getName().contains("Byte")) {
 			for (LocalFeature k : keys) {
-				int id = ((Cluster<?,byte[]>)quantizer).push_one((byte[])k.getFeatureVector().getVector());
+				int id = ((HardAssigner<byte[],?,?>)quantizer).assign((byte[])k.getFeatureVector().getVector());
 				qkeys.add(new QuantisedLocalFeature(k.getLocation(), id));
 			}
 		} else {
 			for (LocalFeature k : keys) {
-				int id = ((Cluster<?,int[]>)quantizer).push_one((int[])k.getFeatureVector().getVector());
+				int id = ((HardAssigner<int[],?,?>)quantizer).assign((int[])k.getFeatureVector().getVector());
 				qkeys.add(new QuantisedLocalFeature(k.getLocation(), id));
 			}
 		}
@@ -112,17 +116,17 @@ public class QuantiserTask implements Callable<File> {
 	}
 	
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public static LocalFeatureList<QuantisedLocalFeature<?>> quantiseFeaturesSoft(Cluster<?,?> quantizer, List<? extends LocalFeature> keys, int numNeighbours) {
+	public static LocalFeatureList<QuantisedLocalFeature<?>> quantiseFeaturesSoft(SoftAssigner<?,?> quantizer, List<? extends LocalFeature> keys) {
 		LocalFeatureList<QuantisedLocalFeature<?>> qkeys = new MemoryLocalFeatureList<QuantisedLocalFeature<?>>(keys.size());
 		
-		if (quantizer.getClusters() instanceof byte[][]) {
+		if (quantizer.getClass().getName().contains("Byte")) {
 			for (LocalFeature k : keys) {
-				int [] ids = ((Cluster<?,byte[]>)quantizer).push_one((byte[])k.getFeatureVector().getVector(), numNeighbours+1);
+				int [] ids = ((SoftAssigner<byte[],?>)quantizer).assign(((byte[])k.getFeatureVector().getVector()));
 				for (int id : ids) qkeys.add(new QuantisedLocalFeature(k.getLocation(), id));
 			}
 		} else {
 			for (LocalFeature k : keys) {
-				int [] ids = ((Cluster<?,int[]>)quantizer).push_one((int[])k.getFeatureVector().getVector(), numNeighbours+1);
+				int [] ids = ((SoftAssigner<int[],?>)quantizer).assign(((int[])k.getFeatureVector().getVector()));
 				for (int id : ids) qkeys.add(new QuantisedLocalFeature(k.getLocation(), id));
 			}
 		}

@@ -32,14 +32,14 @@ import java.io.File;
 import java.io.IOException;
 
 import org.openimaj.io.IOUtils;
-import org.openimaj.ml.clustering.Cluster;
+import org.openimaj.ml.clustering.SpatialClusterer;
 import org.terrier.structures.Index;
 
 import org.openimaj.tools.clusterquantiser.ClusterType;
 import org.openimaj.tools.clusterquantiser.ClusterType.ClusterTypeOp;
 
 /**
- * An index structure for an vector quantiser (an OpenIMAJ {@link Cluster}) which
+ * An index structure for an vector quantiser (an OpenIMAJ {@link SpatialClusterer}) which
  * can be used to quantise features into visual terms.
  * 
  * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
@@ -48,7 +48,7 @@ import org.openimaj.tools.clusterquantiser.ClusterType.ClusterTypeOp;
 public class QuantiserIndex {
 	private static final String EXTENSION = ".featurequantiser";
 	
-	private Cluster<?,?> quantiser;
+	private SpatialClusterer<?,?> quantiser;
 	
 	/**
 	 * Construct a QuantiserIndex from a file
@@ -64,7 +64,7 @@ public class QuantiserIndex {
 	 * Construct a QuantiserIndex from an existing quantiser
 	 * @param quantiser the quantiser
 	 */
-	public QuantiserIndex(Cluster<?,?> quantiser) {
+	public QuantiserIndex(SpatialClusterer<?,?> quantiser) {
 		this.quantiser = quantiser;
 	}
 	
@@ -104,7 +104,7 @@ public class QuantiserIndex {
 	 * Get the underlying vector quantiser
 	 * @return the vector quantiser
 	 */
-	public Cluster<?,?> getQuantiser() {
+	public SpatialClusterer<?,?> getQuantiser() {
 		return quantiser;
 	}
 }
