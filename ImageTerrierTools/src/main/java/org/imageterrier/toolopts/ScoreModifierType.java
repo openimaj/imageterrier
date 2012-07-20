@@ -296,7 +296,7 @@ public enum ScoreModifierType implements CmdLineOptionsProvider {
 	 */
 	public class AffineOptions extends RansacModifierTypeOptions {
 		AffineOptions() {
-			super(FUNDAMENTAL, PositionInvertedIndex.class);
+			super(AFFINE, PositionInvertedIndex.class);
 		}
 
 		@Override
