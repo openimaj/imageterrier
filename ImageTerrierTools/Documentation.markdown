@@ -59,7 +59,7 @@ In addition, all the types share a common option, `-p`, which specifies the prec
 
 For example, the following command would create a vocabulary with 10000 terms using the `RANDOMSET` method from SIFT features. The resultant vocabulary is saved to a file `file.voc` (assumed not to pre-exist) for later re-use.
 
-	java -Xmx2G -jar ImageTerrierTools-X.Y.Z-jar-with-dependencies.jar BasicIndexer -ft SIFT -q file.voc -qt RANDOMSET -K 10000 -p BYTE
+	java -Xmx2G -jar ImageTerrierTools-X.Y.Z-jar-with-dependencies.jar BasicIndexer -m IMAGES -ft SIFT -q file.voc -qt RANDOMSET -k 10000 -p BYTE
 	
 ### Feature Quantisation ###
 As previously described, the vocabulary for quantisation is either loaded from a pre-existing file with the `-q` option, or a new vocabulary is created. There are no additional options for the quantisation phase.
