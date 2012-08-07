@@ -78,7 +78,7 @@ public class FeatureTask implements Callable<File> {
 		//Get the keypoints
 		try {
 			logger.info("Generating keypoints for " + imageFile.getName());
-			LocalFeatureList<?> keys = mode.getKeypointList(loadImageData(imageFile));
+			LocalFeatureList<?> keys = mode.extract(loadImageData(imageFile));
 			IOUtils.writeBinary(filename, keys);
 		} catch (Exception e) {
 			System.err.println("Error processing image " + imageFile);
@@ -89,7 +89,7 @@ public class FeatureTask implements Callable<File> {
 	}
 
 	public static LocalFeatureList<?> computeFeatures(File imageFile, LocalFeatureModeOp mode) throws IOException {
-		return mode.getKeypointList(loadImageData(imageFile));
+		return mode.extract(loadImageData(imageFile));
 	}
 	
 	protected static byte[] loadImageData(File imageFile) throws IOException {

@@ -203,7 +203,7 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 			LocalFeatureList<? extends LocalFeature<?>> features = null;
 			try{
 				logger.info("Extracting features...");
-				features = options.getInputModeOptions().getFeatureType().getKeypointList(value.getBytes());
+				features = options.getInputModeOptions().getFeatureType().extract(value.getBytes());
 				
 				logger.info("Quantising features...");
 				//quantise features
@@ -325,7 +325,7 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 			LocalFeatureList<? extends LocalFeature<?>> features = null;
 			try{
 				logger.info("Extracting features...");
-				features = options.getInputModeOptions().getFeatureType().getKeypointList(value.getBytes());
+				features = options.getInputModeOptions().getFeatureType().extract(value.getBytes());
 				
 				logger.info("Quantising features...");
 				//quantise features

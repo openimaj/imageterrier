@@ -159,38 +159,4 @@
 			</plugin>
 		</plugins>
 	</build>
-	<repositories>
-		<repository>
-			<snapshots>
-			  <enabled>true</enabled>
-			</snapshots>
-			<id>openimaj-snapshots</id>
-			<name>openimaj-snapshots</name>
-			<url>http://octopussy.ecs.soton.ac.uk/m2/snapshots</url>
-		</repository>
-		<repository>
-			<id>Octopussy releases repository</id>
-			<url>http://octopussy.ecs.soton.ac.uk/m2/releases</url>
-		</repository>
-		<repository>
-			<id>Octopussy thirdparty repository</id>
-			<url>http://octopussy.ecs.soton.ac.uk/m2/thirdparty</url>
-		</repository>
-		<repository>
-			<id>Java.net repository</id>
-			<url>http://download.java.net/maven/2</url>
-		</repository>
-		<repository>
-			<id>jline</id>
-			<name>JLine Project Repository</name>
-			<url>http://jline.sourceforge.net/m2repo</url>
-		</repository>
-	</repositories>
-	<distributionManagement>
-	    <repository>
-	      <id>octopussy</id>
-	      <name>Octopussy Maven Releases Repository</name>
-	      <url>http://octopussy.ecs.soton.ac.uk/m2/releases</url>
-	    </repository>
-	 </distributionManagement>
 </project>
