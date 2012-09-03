@@ -33,78 +33,89 @@ import java.io.IOException;
 
 import org.openimaj.io.IOUtils;
 import org.openimaj.ml.clustering.SpatialClusterer;
-import org.terrier.structures.Index;
-
+import org.openimaj.ml.clustering.SpatialClusters;
 import org.openimaj.tools.clusterquantiser.ClusterType;
 import org.openimaj.tools.clusterquantiser.ClusterType.ClusterTypeOp;
+import org.terrier.structures.Index;
 
 /**
- * An index structure for an vector quantiser (an OpenIMAJ {@link SpatialClusterer}) which
- * can be used to quantise features into visual terms.
+ * An index structure for an vector quantiser (an OpenIMAJ
+ * {@link SpatialClusterer}) which can be used to quantise features into visual
+ * terms.
  * 
  * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
- *
+ * 
  */
 public class QuantiserIndex {
 	private static final String EXTENSION = ".featurequantiser";
-	
-	private SpatialClusterer<?,?> quantiser;
-	
+
+	private SpatialClusters<?> quantiser;
+
 	/**
 	 * Construct a QuantiserIndex from a file
-	 * @param path the path to the file
-	 * @param prefix the prefix of the file name
+	 * 
+	 * @param path
+	 *            the path to the file
+	 * @param prefix
+	 *            the prefix of the file name
 	 * @throws IOException
 	 */
 	public QuantiserIndex(String path, String prefix) throws IOException {
 		load(new File(path + File.separator + prefix + EXTENSION));
 	}
-	
+
 	/**
 	 * Construct a QuantiserIndex from an existing quantiser
-	 * @param quantiser the quantiser
+	 * 
+	 * @param quantiser
+	 *            the quantiser
 	 */
-	public QuantiserIndex(SpatialClusterer<?,?> quantiser) {
+	public QuantiserIndex(SpatialClusters<?> quantiser) {
 		this.quantiser = quantiser;
 	}
-	
+
 	/**
 	 * Load a quantiser from a file
+	 * 
 	 * @param file
 	 * @throws IOException
 	 */
 	public void load(File file) throws IOException {
-		ClusterTypeOp quantiserType = ClusterType.sniffClusterType(file);
-		
+		final ClusterTypeOp quantiserType = ClusterType.sniffClusterType(file);
+
 		quantiser = IOUtils.read(file, quantiserType.getClusterClass());
 	}
-	
+
 	/**
 	 * Save the QuantiserIndex to the specified index
+	 * 
 	 * @param index
 	 * @throws IOException
 	 */
 	public void save(Index index) throws IOException {
-		String path = index.getPath();
-		String prefix = index.getPrefix();
-		
+		final String path = index.getPath();
+		final String prefix = index.getPrefix();
+
 		save(new File(path + File.separator + prefix + EXTENSION));
 	}
-	
+
 	/**
 	 * Save the quantiser to the specified file
-	 * @param file the file to save to
+	 * 
+	 * @param file
+	 *            the file to save to
 	 * @throws IOException
 	 */
 	public void save(File file) throws IOException {
 		IOUtils.writeBinary(file, quantiser);
 	}
-	
+
 	/**
 	 * Get the underlying vector quantiser
+	 * 
 	 * @return the vector quantiser
 	 */
-	public SpatialClusterer<?,?> getQuantiser() {
+	public SpatialClusters<?> getQuantiser() {
 		return quantiser;
 	}
 }

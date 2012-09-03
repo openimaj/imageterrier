@@ -6,6 +6,7 @@
 		<artifactId>imageterrier-master</artifactId>
 		<groupId>org.imageterrier</groupId>
 		<version>3.5-SNAPSHOT</version>
+		<relativePath>..</relativePath>
 	</parent>
 	<groupId>org.imageterrier</groupId>
 	<artifactId>ImageClusterTool</artifactId>

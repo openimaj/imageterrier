@@ -63,12 +63,12 @@ import org.openimaj.feature.local.list.MemoryLocalFeatureList;
 import org.openimaj.feature.local.quantised.QuantisedLocalFeature;
 import org.openimaj.hadoop.tools.clusterquantiser.HadoopClusterQuantiserOptions;
 import org.openimaj.io.IOUtils;
-import org.openimaj.ml.clustering.SpatialClusterer;
+import org.openimaj.ml.clustering.ByteCentroidsResult;
+import org.openimaj.ml.clustering.IntCentroidsResult;
+import org.openimaj.ml.clustering.SpatialClusters;
 import org.openimaj.ml.clustering.assignment.HardAssigner;
 import org.openimaj.ml.clustering.assignment.hard.ApproximateByteEuclideanAssigner;
 import org.openimaj.ml.clustering.assignment.hard.ApproximateIntEuclideanAssigner;
-import org.openimaj.ml.clustering.kmeans.fast.FastByteKMeans;
-import org.openimaj.ml.clustering.kmeans.fast.FastIntKMeans;
 import org.terrier.indexing.AbstractHadoopIndexer;
 import org.terrier.indexing.Document;
 import org.terrier.indexing.ExtensibleSinglePassIndexer;
@@ -80,22 +80,21 @@ import org.terrier.structures.indexing.singlepass.hadoop.NewSplitEmittedTerm;
 import org.terrier.utility.ApplicationSetup;
 import org.terrier.utility.Files;
 
-
 /**
  * @author Jonathon Hare
- *
+ * 
  */
 public class HadoopIndexer extends AbstractHadoopIndexer {
 	static {
-		//initialise terrier
+		// initialise terrier
 		BasicTerrierConfig.configure();
 	}
 	protected static final Logger logger = Logger.getLogger(HadoopIndexer.class);
-	
+
 	public static final String INDEXER_ARGS_STRING = "indexer.args";
 
 	public static final String QUANTISER_SIZE = "indexer.quantiser.size";
-	
+
 	/**
 	 * The mapper implementation for direct quantised feature indexing
 	 */
@@ -106,7 +105,7 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 		@Override
 		protected ExtensibleSinglePassIndexer createIndexer(Context context) throws IOException {
 			options = getOptions(context.getConfiguration());
-			
+
 			featureClass = options.getFeatureClass();
 			return options.getIndexType().getIndexer(null, null);
 		}
@@ -119,162 +118,176 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 	}
 
 	/**
-	 * Mapper implementation for directly processing images, that is safe to use with a 
-	 * MultithreadedMapper. Each MultithreadedMapper thread will produce its own index.
+	 * Mapper implementation for directly processing images, that is safe to use
+	 * with a MultithreadedMapper. Each MultithreadedMapper thread will produce
+	 * its own index.
 	 */
 	static class MTImageIndexerMapper extends HadoopIndexerMapper<BytesWritable> {
 		protected static Class<? extends QuantisedLocalFeature<?>> featureClass;
 		protected static HadoopIndexerOptions options;
-		private static SpatialClusterer<?, ?> clusters;
-		private static HardAssigner<?,?,?> assigner;
+		private static SpatialClusters<?> clusters;
+		private static HardAssigner<?, ?, ?> assigner;
 		private static TLongArrayList threads = new TLongArrayList();
 		private int threadID;
-		
+
 		private static synchronized ExtensibleSinglePassIndexer setupIndexer(Context context) throws IOException {
 			if (clusters == null) {
 				options = getOptions(context.getConfiguration());
-				
+
 				featureClass = options.getFeatureClass();
-				
+
 				System.out.println("Loading codebook...");
-				String codebookURL = options.getInputModeOptions().getQuantiserFile();
-				options.getInputModeOptions().quantiserTypeOp = HadoopClusterQuantiserOptions.sniffClusterType(codebookURL);
-				
+				final String codebookURL = options.getInputModeOptions().getQuantiserFile();
+				options.getInputModeOptions().quantiserTypeOp = HadoopClusterQuantiserOptions
+						.sniffClusterType(codebookURL);
+
 				if (options.getInputModeOptions().getQuantiserType() != null)
-					clusters = IOUtils.read(HadoopClusterQuantiserOptions.getClusterInputStream(codebookURL), options.getInputModeOptions().getQuantiserType().getClusterClass());
-				
+					clusters = IOUtils.read(HadoopClusterQuantiserOptions.getClusterInputStream(codebookURL), options
+							.getInputModeOptions().getQuantiserType().getClusterClass());
+
 				if (!options.getInputModeOptions().quantiserExact) {
 					assigner = clusters.defaultHardAssigner();
 				} else {
-					if (clusters instanceof FastByteKMeans)
-						assigner = new ApproximateByteEuclideanAssigner((FastByteKMeans) clusters);
-					else if (clusters instanceof FastIntKMeans)
-						assigner = new ApproximateIntEuclideanAssigner((FastIntKMeans) clusters);
-					else 
+					if (clusters instanceof ByteCentroidsResult)
+						assigner = new ApproximateByteEuclideanAssigner((ByteCentroidsResult) clusters);
+					else if (clusters instanceof IntCentroidsResult)
+						assigner = new ApproximateIntEuclideanAssigner((IntCentroidsResult) clusters);
+					else
 						assigner = clusters.defaultHardAssigner();
 				}
 				System.out.println("Done!");
 			}
 			return options.getIndexType().getIndexer(null, null);
 		}
-		
+
 		@Override
 		protected ExtensibleSinglePassIndexer createIndexer(Context context) throws IOException {
 			synchronized (MTImageIndexerMapper.class) {
-				long id = Thread.currentThread().getId();
+				final long id = Thread.currentThread().getId();
 				if (!threads.contains(id)) {
 					threads.add(id);
 					this.threadID = threads.indexOf(id);
 				}
 			}
-			
+
 			return setupIndexer(context);
 		}
 
 		@Override
 		protected int getSplitNum(Context context) {
-			//Splitno is required by the reducer to be unique per mapper (in particular in the .runs files)
-			//we modify the splitnos for each thread to allow this to work
+			// Splitno is required by the reducer to be unique per mapper (in
+			// particular in the .runs files)
+			// we modify the splitnos for each thread to allow this to work
 			try {
-				if (((Class<?>)context.getMapperClass()) == ((Class<?>)(MultithreadedMapper.class))) {
-					int sidx = ((PositionAwareSplitWrapper<?>)context.getInputSplit()).getSplitIndex();
+				if (((Class<?>) context.getMapperClass()) == ((Class<?>) (MultithreadedMapper.class))) {
+					final int sidx = ((PositionAwareSplitWrapper<?>) context.getInputSplit()).getSplitIndex();
 					return (sidx * MultithreadedMapper.getNumberOfThreads(context)) + threadID;
 				}
-			} catch (ClassNotFoundException e) {}
-			return ((PositionAwareSplitWrapper<?>)context.getInputSplit()).getSplitIndex();
+			} catch (final ClassNotFoundException e) {
+			}
+			return ((PositionAwareSplitWrapper<?>) context.getInputSplit()).getSplitIndex();
 		}
-		
+
 		@Override
 		protected String getTaskID(Context context) {
-			//the task id is used to name the shard. we modify it per thread to allow each thread to
-			//work on its own shard.
+			// the task id is used to name the shard. we modify it per thread to
+			// allow each thread to
+			// work on its own shard.
 			try {
-				if (((Class<?>)context.getMapperClass()) == ((Class<?>)(MultithreadedMapper.class))) {
+				if (((Class<?>) context.getMapperClass()) == ((Class<?>) (MultithreadedMapper.class))) {
 					return context.getTaskAttemptID().getTaskID().toString() + threadID;
 				}
-			} catch (ClassNotFoundException e) {}
+			} catch (final ClassNotFoundException e) {
+			}
 			return context.getTaskAttemptID().getTaskID().toString();
 		}
-		
+
 		@SuppressWarnings({ "unchecked", "rawtypes" })
 		@Override
 		protected Document recordToDocument(Text key, BytesWritable value) throws IOException {
-			//extract features
+			// extract features
 			LocalFeatureList<? extends LocalFeature<?>> features = null;
-			try{
+			try {
 				logger.info("Extracting features...");
 				features = options.getInputModeOptions().getFeatureType().extract(value.getBytes());
-				
+
 				logger.info("Quantising features...");
-				//quantise features
-				LocalFeatureList<QuantisedLocalFeature<?>> qkeys = new MemoryLocalFeatureList<QuantisedLocalFeature<?>>(features.size());
+				// quantise features
+				final LocalFeatureList<QuantisedLocalFeature<?>> qkeys = new MemoryLocalFeatureList<QuantisedLocalFeature<?>>(
+						features.size());
 				if (clusters.getClass().getName().contains("Byte")) {
-					for (LocalFeature k : features) {
-						int id = ((HardAssigner<byte[],?,?>)assigner).assign((byte[])k.getFeatureVector().getVector());
+					for (final LocalFeature k : features) {
+						final int id = ((HardAssigner<byte[], ?, ?>) assigner).assign((byte[]) k.getFeatureVector()
+								.getVector());
 						qkeys.add(new QuantisedLocalFeature(k.getLocation(), id));
 					}
 				} else {
-					for (LocalFeature k : features) {
-						int id = ((HardAssigner<int[],?,?>)assigner).assign((int[])k.getFeatureVector().getVector());
+					for (final LocalFeature k : features) {
+						final int id = ((HardAssigner<int[], ?, ?>) assigner).assign((int[]) k.getFeatureVector()
+								.getVector());
 						qkeys.add(new QuantisedLocalFeature(k.getLocation(), id));
 					}
 				}
-				
+
 				logger.info("Construcing QLFDocument...");
-				//create document
-				return new QLFDocument(qkeys, key.toString().substring(0,Math.min(key.getLength(), 20)), null); //FIXME sort out key length
-			}
-			catch(Throwable e){
+				// create document
+				return new QLFDocument(qkeys, key.toString().substring(0, Math.min(key.getLength(), 20)), null); // FIXME
+																													// sort
+																													// out
+																													// key
+																													// length
+			} catch (final Throwable e) {
 				logger.warn("Skipping image: " + key + " due to: " + e.getMessage());
 				return null;
 			}
 		}
-		
+
 	}
-	
+
 	/**
-	 * Mapper implementation that uses multiple threads to process
-	 * images into visual terms and then emits them to the
-	 * indexer
+	 * Mapper implementation that uses multiple threads to process images into
+	 * visual terms and then emits them to the indexer
 	 */
 	static class ImageIndexerMapper extends HadoopIndexerMapper<BytesWritable> {
 		protected Class<? extends QuantisedLocalFeature<?>> featureClass;
 		protected HadoopIndexerOptions options;
 		private ExecutorService service;
 		private static HardAssigner<?, ?, ?> assigner;
-		
+
 		@Override
-		protected void map(Text key, BytesWritable value, final Context context) throws IOException, InterruptedException {
+		protected void map(Text key, BytesWritable value, final Context context) throws IOException, InterruptedException
+		{
 			final Text innerkey = new Text(key.toString());
 			final BytesWritable innervalue = new BytesWritable(Arrays.copyOf(value.getBytes(), value.getLength()));
-			
-			 
-			Callable<Boolean> r = new Callable<Boolean>() {
+
+			final Callable<Boolean> r = new Callable<Boolean>() {
 				@Override
 				public Boolean call() throws IOException {
-//					final String docno = innerkey.toString();
-					
+					// final String docno = innerkey.toString();
+
 					final Document doc = recordToDocument(innerkey, innervalue);
-					if(doc==null) return false;
-					
-//					long t1 = System.nanoTime();
-//					synchronized (ImageIndexerMapper.this) {
-//						long t2 = System.nanoTime();
-//						
-//						System.out.println("Spent " + ((t2-t1)*(1.0e-9)) + "s waiting for lock!");
-//						
-//						context.setStatus("Currently indexing "+docno);
-//						
-//						indexDocument(doc, context);
-//						context.getCounter(Counters.INDEXED_DOCUMENTS).increment(1);
-//					}
+					if (doc == null)
+						return false;
+
+					// long t1 = System.nanoTime();
+					// synchronized (ImageIndexerMapper.this) {
+					// long t2 = System.nanoTime();
+					//
+					// System.out.println("Spent " + ((t2-t1)*(1.0e-9)) +
+					// "s waiting for lock!");
+					//
+					// context.setStatus("Currently indexing "+docno);
+					//
+					// indexDocument(doc, context);
+					// context.getCounter(Counters.INDEXED_DOCUMENTS).increment(1);
+					// }
 					return true;
 				}
 			};
-			
+
 			service.submit(r);
 		}
-		
+
 		@Override
 		protected void cleanup(Context context) throws IOException, InterruptedException {
 			service.shutdown();
@@ -283,114 +296,128 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 			logger.info("Mapper threads finished. Cleaning up.");
 			super.cleanup(context);
 		}
-		
+
 		@Override
 		protected ExtensibleSinglePassIndexer createIndexer(Context context) throws IOException {
 			options = getOptions(context.getConfiguration());
-						
-			featureClass = options.getFeatureClass();
-			
-			//load quantiser if required
-			loadQuantiser(options,true);
-			
-			//set up threadpool
-			int nThreads = options.getMultithread();
-			service =  new ThreadPoolExecutor(nThreads, nThreads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(nThreads) {
-				//the ThreadPoolExecutor calls offer() on the backing queue, which unfortunately
-				//doesn't block, and we end up getting exceptions because the job could not
-				//be executed. This works around the problem by making offer() block (by calling put()). 
-				private static final long serialVersionUID = 1L;
 
-				@Override
-			    public boolean offer(Runnable e)
-			    {
-			        // turn offer() and add() into a blocking calls (unless interrupted)
-			        try {
-			            put(e);
-			            return true;
-			        } catch(InterruptedException ie) {
-			            Thread.currentThread().interrupt();
-			        }
-			        return false;
-			    }
-			});
-			
+			featureClass = options.getFeatureClass();
+
+			// load quantiser if required
+			loadQuantiser(options, true);
+
+			// set up threadpool
+			final int nThreads = options.getMultithread();
+			service = new ThreadPoolExecutor(nThreads, nThreads, 0L, TimeUnit.MILLISECONDS,
+					new LinkedBlockingQueue<Runnable>(nThreads) {
+						// the ThreadPoolExecutor calls offer() on the backing
+						// queue, which unfortunately
+						// doesn't block, and we end up getting exceptions
+						// because the job could not
+						// be executed. This works around the problem by making
+						// offer() block (by calling put()).
+						private static final long serialVersionUID = 1L;
+
+						@Override
+						public boolean offer(Runnable e)
+				{
+					// turn offer() and add() into a blocking calls (unless
+					// interrupted)
+						try {
+							put(e);
+							return true;
+						} catch (final InterruptedException ie) {
+							Thread.currentThread().interrupt();
+						}
+						return false;
+					}
+					});
+
 			return options.getIndexType().getIndexer(null, null);
 		}
 
 		@SuppressWarnings({ "rawtypes", "unchecked" })
 		@Override
 		protected Document recordToDocument(Text key, BytesWritable value) throws IOException {
-			//extract features
+			// extract features
 			LocalFeatureList<? extends LocalFeature<?>> features = null;
-			try{
+			try {
 				logger.info("Extracting features...");
 				features = options.getInputModeOptions().getFeatureType().extract(value.getBytes());
-				
+
 				logger.info("Quantising features...");
-				//quantise features
-				LocalFeatureList<QuantisedLocalFeature<?>> qkeys = new MemoryLocalFeatureList<QuantisedLocalFeature<?>>(features.size());
+				// quantise features
+				final LocalFeatureList<QuantisedLocalFeature<?>> qkeys = new MemoryLocalFeatureList<QuantisedLocalFeature<?>>(
+						features.size());
 				if (assigner.getClass().getName().contains("Byte")) {
-					for (LocalFeature k : features) {
-						int id = ((HardAssigner<byte[],?,?>)assigner).assign((byte[])k.getFeatureVector().getVector());
+					for (final LocalFeature k : features) {
+						final int id = ((HardAssigner<byte[], ?, ?>) assigner).assign((byte[]) k.getFeatureVector()
+								.getVector());
 						qkeys.add(new QuantisedLocalFeature(k.getLocation(), id));
 					}
 				} else {
-					for (LocalFeature k : features) {
-						int id = ((HardAssigner<int[],?,?>)assigner).assign((int[])k.getFeatureVector().getVector());
+					for (final LocalFeature k : features) {
+						final int id = ((HardAssigner<int[], ?, ?>) assigner).assign((int[]) k.getFeatureVector()
+								.getVector());
 						qkeys.add(new QuantisedLocalFeature(k.getLocation(), id));
 					}
 				}
-				
+
 				logger.info("Construcing QLFDocument...");
-				//create document
-				return new QLFDocument(qkeys, key.toString().substring(0,Math.min(key.getLength(), 20)), null); //FIXME sort out key length
-			}
-			catch(Throwable e){
+				// create document
+				return new QLFDocument(qkeys, key.toString().substring(0, Math.min(key.getLength(), 20)), null); // FIXME
+																													// sort
+																													// out
+																													// key
+																													// length
+			} catch (final Throwable e) {
 				logger.warn("Skipping image: " + key + " due to: " + e.getMessage());
 				return null;
 			}
 		}
 
-		private static synchronized void loadQuantiser(HadoopIndexerOptions options,boolean optimise) throws IOException {
+		private static synchronized void loadQuantiser(HadoopIndexerOptions options, boolean optimise) throws IOException
+		{
 			if (assigner == null) {
 				assigner = readQuantiser(options, readClusters(options));
 			}
 		}
 
-		
 	}
-	
-	protected static SpatialClusterer<?, ?> readClusters(HadoopIndexerOptions options) throws IOException {
-		SpatialClusterer<?, ?> clusters = null;
+
+	protected static SpatialClusters<?> readClusters(HadoopIndexerOptions options) throws IOException {
+		SpatialClusters<?> clusters = null;
 		System.out.println("Loading codebook...");
-		String codebookURL = options.getInputModeOptions().getQuantiserFile();
+		final String codebookURL = options.getInputModeOptions().getQuantiserFile();
 		options.getInputModeOptions().quantiserTypeOp = HadoopClusterQuantiserOptions.sniffClusterType(codebookURL);
-		
-		if (options.getInputModeOptions().getQuantiserType() != null)
-		{
-			clusters = IOUtils.read(HadoopClusterQuantiserOptions.getClusterInputStream(codebookURL), options.getInputModeOptions().getQuantiserType().getClusterClass());
+
+		if (options.getInputModeOptions().getQuantiserType() != null) {
+			clusters = IOUtils.read(HadoopClusterQuantiserOptions.getClusterInputStream(codebookURL),
+					options.getInputModeOptions().getQuantiserType().getClusterClass());
 		}
 		return clusters;
 	}
-	
-	protected static HardAssigner<?, ?, ?> readQuantiser(HadoopIndexerOptions options, SpatialClusterer<?,?> clusters) throws IOException {
+
+	protected static HardAssigner<?, ?, ?> readQuantiser(HadoopIndexerOptions options, SpatialClusters<?> clusters)
+			throws IOException
+	{
 		HardAssigner<?, ?, ?> assigner = null;
 		if (!options.getInputModeOptions().quantiserExact) {
 			assigner = clusters.defaultHardAssigner();
 		} else {
-			if (clusters instanceof FastByteKMeans)
-				assigner = new ApproximateByteEuclideanAssigner((FastByteKMeans) clusters);
-			else if (clusters instanceof FastIntKMeans)
-				assigner = new ApproximateIntEuclideanAssigner((FastIntKMeans) clusters);
-			else 
+			if (clusters instanceof ByteCentroidsResult)
+				assigner = new ApproximateByteEuclideanAssigner((ByteCentroidsResult) clusters);
+			else if (clusters instanceof IntCentroidsResult)
+				assigner = new ApproximateIntEuclideanAssigner((IntCentroidsResult) clusters);
+			else
 				assigner = clusters.defaultHardAssigner();
 		}
-		
+
 		System.out.println("Done!");
 		return assigner;
-		
+
 	}
+
 	/**
 	 * The reducer implementation
 	 */
@@ -402,48 +429,47 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 	}
 
 	private static HadoopIndexerOptions getOptions(Configuration conf) throws IOException {
-		String [] args = conf.getStrings(INDEXER_ARGS_STRING);
+		final String[] args = conf.getStrings(INDEXER_ARGS_STRING);
 
-		HadoopIndexerOptions options = new HadoopIndexerOptions();
-		CmdLineParser parser = new CmdLineParser(options);
-		
+		final HadoopIndexerOptions options = new HadoopIndexerOptions();
+		final CmdLineParser parser = new CmdLineParser(options);
+
 		try {
-		    parser.parseArgument(args);
-		} catch(CmdLineException e) {
+			parser.parseArgument(args);
+		} catch (final CmdLineException e) {
 			throw new IOException(e);
 		}
-		
+
 		return options;
 	}
-	
-	private static final String usage()
-	{
+
+	private static final String usage() {
 		return "Usage: HadoopIndexing [-p]";
 	}
-	
+
 	protected Job createJob(HadoopIndexerOptions options) throws IOException {
-		Job job = new Job(getConf());
+		final Job job = new Job(getConf());
 		job.setJobName("terrierIndexing");
 
 		if (options.getInputMode() == InputMode.QUANTISED_FEATURES) {
 			job.setMapperClass(QFIndexerMapper.class);
-		} else { 
+		} else {
 			if (options.shardPerThread) {
 				job.setMapperClass(MultithreadedMapper.class);
 				MultithreadedMapper.setMapperClass(job, MTImageIndexerMapper.class);
-				MultithreadedMapper.setNumberOfThreads(job, options.getMultithread());				
+				MultithreadedMapper.setNumberOfThreads(job, options.getMultithread());
 			} else {
 				job.setMapperClass(ImageIndexerMapper.class);
 			}
 		}
 		// Load quantiser (if it exists), extract header, count codebook size
-		String quantFile = options.getInputModeOptions().getQuantiserFile();
-		if(quantFile!=null){
+		final String quantFile = options.getInputModeOptions().getQuantiserFile();
+		if (quantFile != null) {
 			System.out.println("Loading codebook to see its size");
-			SpatialClusterer<?,?> quantiser = readClusters(options);
+			final SpatialClusters<?> quantiser = readClusters(options);
 			System.out.println("Setting codebook size: " + quantiser.numClusters());
 			job.getConfiguration().setInt(QUANTISER_SIZE, quantiser.numClusters());
-			if(quantiser.numClusters() < options.getNumReducers())
+			if (quantiser.numClusters() < options.getNumReducers())
 				options.setNumReducers(quantiser.numClusters());
 		}
 		job.setReducerClass(IndexerReducer.class);
@@ -453,52 +479,52 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 		job.setMapOutputValueClass(MapEmittedPostingList.class);
 		job.getConfiguration().setBoolean("indexing.hadoop.multiple.indices", options.isDocumentPartitionMode());
 
-//		if (!job.getConfiguration().get("mapred.job.tracker").equals("local")) {
-//			job.getConfiguration().set("mapred.map.output.compression.codec", GzipCodec.class.getCanonicalName());
-//			job.getConfiguration().setBoolean("mapred.compress.map.output", true);
-//		} else {
-			job.getConfiguration().setBoolean("mapred.compress.map.output", false);
-//		}
-		
-		job.setInputFormatClass(PositionAwareSequenceFileInputFormat.class); //important
-		
+		// if
+		// (!job.getConfiguration().get("mapred.job.tracker").equals("local")) {
+		// job.getConfiguration().set("mapred.map.output.compression.codec",
+		// GzipCodec.class.getCanonicalName());
+		// job.getConfiguration().setBoolean("mapred.compress.map.output",
+		// true);
+		// } else {
+		job.getConfiguration().setBoolean("mapred.compress.map.output", false);
+		// }
+
+		job.setInputFormatClass(PositionAwareSequenceFileInputFormat.class); // important
+
 		job.setOutputFormatClass(SequenceFileOutputFormat.class);
-		
+
 		job.setSortComparatorClass(NewSplitEmittedTerm.SETRawComparatorTermSplitFlush.class);
 		job.setGroupingComparatorClass(NewSplitEmittedTerm.SETRawComparatorTerm.class);
 
 		job.getConfiguration().setBoolean("mapred.reduce.tasks.speculative.execution", false);
-		
+
 		SequenceFileInputFormat.setInputPaths(job, options.getInputPaths());
-		
+
 		job.setNumReduceTasks(options.getNumReducers());
 		if (options.getNumReducers() > 1) {
-			if (options.isDocumentPartitionMode())
-			{
+			if (options.isDocumentPartitionMode()) {
 				job.setPartitionerClass(NewSplitEmittedTerm.SETPartitioner.class);
-			}
-			else
-			{
-//				job.setPartitionerClass(NewSplitEmittedTerm.SETPartitionerLowercaseAlphaTerm.class);
-				if(job.getConfiguration().getInt(QUANTISER_SIZE, -1) == -1){
+			} else {
+				// job.setPartitionerClass(NewSplitEmittedTerm.SETPartitionerLowercaseAlphaTerm.class);
+				if (job.getConfiguration().getInt(QUANTISER_SIZE, -1) == -1) {
 					job.setPartitionerClass(NewSplitEmittedTerm.SETPartitionerHashedTerm.class);
-				}
-				else{
+				} else {
 					job.setPartitionerClass(NewSplitEmittedTerm.SETPartitionerCodebookAwareTerm.class);
 				}
-				
+
 			}
 		} else {
-			//for JUnit tests, we seem to need to restore the original partitioner class
+			// for JUnit tests, we seem to need to restore the original
+			// partitioner class
 			job.setPartitionerClass(HashPartitioner.class);
 		}
 
 		job.setJarByClass(this.getClass());
-		
+
 		return job;
 	}
-	
-	/** 
+
+	/**
 	 * Process the arguments and start the map-reduce indexing.
 	 * 
 	 * @param args
@@ -506,36 +532,39 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 	 */
 	@Override
 	public int run(String[] args) throws Exception {
-		long time = System.currentTimeMillis();
-		
-		HadoopIndexerOptions options = new HadoopIndexerOptions();
-		CmdLineParser parser = new CmdLineParser(options);
-		try {
-		    parser.parseArgument(args);
-		} catch(CmdLineException e) {
-		    logger.fatal(e.getMessage());
-		    logger.fatal(usage());
-		    return 1;
-		}
+		final long time = System.currentTimeMillis();
 
-		if (Files.exists(options.getOutputPathString()) && Index.existsIndex(options.getOutputPathString(), ApplicationSetup.TERRIER_INDEX_PREFIX)) {
-			logger.fatal("Cannot index while index exists at " + options.getOutputPathString() + "," + ApplicationSetup.TERRIER_INDEX_PREFIX);
+		final HadoopIndexerOptions options = new HadoopIndexerOptions();
+		final CmdLineParser parser = new CmdLineParser(options);
+		try {
+			parser.parseArgument(args);
+		} catch (final CmdLineException e) {
+			logger.fatal(e.getMessage());
+			logger.fatal(usage());
 			return 1;
 		}
-		
+
+		if (Files.exists(options.getOutputPathString())
+				&& Index.existsIndex(options.getOutputPathString(), ApplicationSetup.TERRIER_INDEX_PREFIX))
+		{
+			logger.fatal("Cannot index while index exists at " + options.getOutputPathString() + ","
+					+ ApplicationSetup.TERRIER_INDEX_PREFIX);
+			return 1;
+		}
+
 		// create job
-		Job job = createJob(options);
-		
-		//set args string
+		final Job job = createJob(options);
+
+		// set args string
 		job.getConfiguration().setStrings(INDEXER_ARGS_STRING, args);
 
-		//run job
+		// run job
 		JobID jobId = null;
 		boolean ranOK = true;
 		try {
 			ranOK = job.waitForCompletion(true);
 			jobId = job.getJobID();
-		} catch (Exception e) { 
+		} catch (final Exception e) {
 			logger.error("Problem running job", e);
 			ranOK = false;
 		}
@@ -545,32 +574,34 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 		}
 
 		if (ranOK) {
-			if (! options.isDocumentPartitionMode()) {
+			if (!options.isDocumentPartitionMode()) {
 				if (job.getNumReduceTasks() > 1) {
 					mergeLexiconInvertedFiles(options.getOutputPathString(), job.getNumReduceTasks());
 				}
 			}
 
-			finish(options.getOutputPathString(), options.isDocumentPartitionMode() ? job.getNumReduceTasks() : 1, job.getConfiguration());
+			finish(options.getOutputPathString(), options.isDocumentPartitionMode() ? job.getNumReduceTasks() : 1,
+					job.getConfiguration());
 		}
 
-		System.out.println("Time Taken = "+((System.currentTimeMillis()-time)/1000)+" seconds");
+		System.out.println("Time Taken = " + ((System.currentTimeMillis() - time) / 1000) + " seconds");
 
 		return 0;
 	}
 
 	public static void main(String[] args) throws Exception {
-//		args = new String[] { 
-//				"-t", "BASIC",
-//				"-j", "4",
-//				"-nr", "1",
-//				"-fc", "QuantisedKeypoint",
-//				"-o", "/Users/jsh2/test.index",
-//				"-m", "IMAGES", 
-//				"-q", "hdfs://seurat.ecs.soton.ac.uk/data/codebooks/small-10.seq/final",
-//				"hdfs://seurat.ecs.soton.ac.uk/data/image-net-timetests/image-net-10.seq"
-//		};
-		
+		// args = new String[] {
+		// "-t", "BASIC",
+		// "-j", "4",
+		// "-nr", "1",
+		// "-fc", "QuantisedKeypoint",
+		// "-o", "/Users/jsh2/test.index",
+		// "-m", "IMAGES",
+		// "-q",
+		// "hdfs://seurat.ecs.soton.ac.uk/data/codebooks/small-10.seq/final",
+		// "hdfs://seurat.ecs.soton.ac.uk/data/image-net-timetests/image-net-10.seq"
+		// };
+
 		ToolRunner.run(new HadoopIndexer(), args);
 	}
 }

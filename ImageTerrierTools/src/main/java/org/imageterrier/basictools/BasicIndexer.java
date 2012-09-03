@@ -32,7 +32,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -51,7 +50,7 @@ import org.openimaj.image.feature.local.keypoints.Keypoint;
 import org.openimaj.image.feature.local.keypoints.quantised.QuantisedAffineSimulationKeypoint;
 import org.openimaj.image.feature.local.keypoints.quantised.QuantisedKeypoint;
 import org.openimaj.io.IOUtils;
-import org.openimaj.ml.clustering.SpatialClusterer;
+import org.openimaj.ml.clustering.SpatialClusters;
 import org.openimaj.tools.clusterquantiser.ClusterQuantiser;
 import org.openimaj.tools.clusterquantiser.ClusterQuantiserOptions;
 import org.openimaj.tools.clusterquantiser.ClusterType;
@@ -66,21 +65,21 @@ public class BasicIndexer {
 		BasicTerrierConfig.configure();
 	}
 
-	public static String [] IMAGE_EXTENSIONS = {
-		".jpg",
-		".jpeg",
-		".png"
+	public static String[] IMAGE_EXTENSIONS = {
+			".jpg",
+			".jpeg",
+			".png"
 	};
-	
+
 	BasicIndexerOptions options = new BasicIndexerOptions();
 	List<File> images = new ArrayList<File>();
-	
+
 	protected void findImages(File dir) {
-		for (File f : dir.listFiles()) {
+		for (final File f : dir.listFiles()) {
 			if (f.isDirectory()) {
 				findImages(f);
 			} else {
-				for (String ext : IMAGE_EXTENSIONS) {
+				for (final String ext : IMAGE_EXTENSIONS) {
 					if (f.getName().endsWith(ext)) {
 						images.add(f);
 						break;
@@ -89,9 +88,9 @@ public class BasicIndexer {
 			}
 		}
 	}
-	
+
 	protected void findFiles(File dir, String ext) {
-		for (File f : dir.listFiles()) {
+		for (final File f : dir.listFiles()) {
 			if (f.isDirectory()) {
 				findFiles(f, ext);
 			} else {
@@ -101,131 +100,147 @@ public class BasicIndexer {
 			}
 		}
 	}
-	
+
 	class ProcessData {
 		QLFFilesCollection<? extends QuantisedLocalFeature<?>> collection;
-		SpatialClusterer<?,?> cluster;
-		
-		public ProcessData(QLFFilesCollection<? extends QuantisedLocalFeature<?>> collection, SpatialClusterer<?, ?> cluster) {
+		SpatialClusters<?> cluster;
+
+		public ProcessData(QLFFilesCollection<? extends QuantisedLocalFeature<?>> collection, SpatialClusters<?> cluster)
+		{
 			this.collection = collection;
 			this.cluster = cluster;
 		}
 	}
-	
+
 	protected ProcessData processFiles(BasicIndexerOptions toolOpts) throws IOException {
-		QFModeOptions options = (QFModeOptions) toolOpts.getInputModeOptions();
-		
-		//build a list of images
-		if (toolOpts.isVerbose()) System.err.println("Building file list");
-		for (String f : toolOpts.getSearchPaths())
+		final QFModeOptions options = (QFModeOptions) toolOpts.getInputModeOptions();
+
+		// build a list of images
+		if (toolOpts.isVerbose())
+			System.err.println("Building file list");
+		for (final String f : toolOpts.getSearchPaths())
 			findFiles(new File(f), options.getFileExtension());
-		
-		if (toolOpts.isVerbose()) System.err.println("Found " + images.size() + " files");
-		
-		Class<? extends QuantisedLocalFeature<?>> qclass = options.getFeatureType().getFeatureClass() == Keypoint.class ? QuantisedKeypoint.class : QuantisedAffineSimulationKeypoint.class;
+
+		if (toolOpts.isVerbose())
+			System.err.println("Found " + images.size() + " files");
+
+		final Class<? extends QuantisedLocalFeature<?>> qclass = options.getFeatureType().getFeatureClass() == Keypoint.class ? QuantisedKeypoint.class
+				: QuantisedAffineSimulationKeypoint.class;
 		@SuppressWarnings({ "unchecked", "rawtypes" })
-		QLFFilesCollection<? extends QuantisedLocalFeature<?>> collection = new QLFFilesCollection(qclass, options.getFileExtension().replace(".", "\\."), "");
-		
-		for (File f : images) {
+		final QLFFilesCollection<? extends QuantisedLocalFeature<?>> collection = new QLFFilesCollection(qclass, options
+				.getFileExtension().replace(".", "\\."), "");
+
+		for (final File f : images) {
 			collection.addFile(f);
 		}
-		
-		if (toolOpts.isVerbose()) System.err.println("Loading quantiser");
+
+		if (toolOpts.isVerbose())
+			System.err.println("Loading quantiser");
 		options.quantiserTypeOp = ClusterType.sniffClusterType(new File(options.getQuantiserFile()));
-		
-		SpatialClusterer<?, ?> cluster = null;
+
+		SpatialClusters<?> cluster = null;
 		if (options.quantiserTypeOp != null)
 			cluster = IOUtils.read(new File(options.getQuantiserFile()), options.getQuantiserType().getClusterClass());
-		
+
 		return new ProcessData(collection, cluster);
 	}
-	
-	protected ProcessData processImages(BasicIndexerOptions toolOpts) throws InterruptedException, IOException, ExecutionException {
-		ImagesModeOptions options = (ImagesModeOptions) toolOpts.getInputModeOptions();
-		
-		//build a list of images
-		if (toolOpts.isVerbose()) System.err.println("Building image list");
-		for (String f : toolOpts.getSearchPaths())
+
+	protected ProcessData processImages(BasicIndexerOptions toolOpts) throws Exception {
+		final ImagesModeOptions options = (ImagesModeOptions) toolOpts.getInputModeOptions();
+
+		// build a list of images
+		if (toolOpts.isVerbose())
+			System.err.println("Building image list");
+		for (final String f : toolOpts.getSearchPaths())
 			findImages(new File(f));
-		
-		//make executor service
-		ExecutorService es = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-		
-		//Extract features
-		if (toolOpts.isVerbose()) System.err.println("Extracting features");
-		
-		List<FeatureTask> featureTasks = new ArrayList<FeatureTask>();
-		for (File im : images) {
+
+		// make executor service
+		final ExecutorService es = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+
+		// Extract features
+		if (toolOpts.isVerbose())
+			System.err.println("Extracting features");
+
+		final List<FeatureTask> featureTasks = new ArrayList<FeatureTask>();
+		for (final File im : images) {
 			featureTasks.add(new FeatureTask(im, options.forceRegeneration(), options.getFeatureType()));
 		}
-		List<Future<File>> featureFutures = es.invokeAll(featureTasks);
+		final List<Future<File>> featureFutures = es.invokeAll(featureTasks);
 
-		//Create or load quantiser
-		SpatialClusterer<?,?> cluster;
+		// Create or load quantiser
+		SpatialClusters<?> cluster;
 		if (options.getQuantiserFile() != null && new File(options.getQuantiserFile()).exists()) {
-			if (toolOpts.isVerbose()) System.err.println("Loading quantiser");
-			
+			if (toolOpts.isVerbose())
+				System.err.println("Loading quantiser");
+
 			options.quantiserTypeOp = ClusterType.sniffClusterType(new File(options.getQuantiserFile()));
-			
-			if (options.quantiserTypeOp == null) throw new RuntimeException("Unknown cluster type");
-			
+
+			if (options.quantiserTypeOp == null)
+				throw new RuntimeException("Unknown cluster type");
+
 			cluster = IOUtils.read(new File(options.getQuantiserFile()), options.getQuantiserType().getClusterClass());
 		} else {
-			if (toolOpts.isVerbose()) System.err.println("Building quantiser");
-			
-			ClusterQuantiserOptions cqopts = new ClusterQuantiserOptions();
-			
-			List<File> files = new ArrayList<File>();
-			for (Future<File> f : featureFutures)
-				 if (f.get() != null) 
-					 files.add(f.get());
-			
+			if (toolOpts.isVerbose())
+				System.err.println("Building quantiser");
+
+			final ClusterQuantiserOptions cqopts = new ClusterQuantiserOptions();
+
+			final List<File> files = new ArrayList<File>();
+			for (final Future<File> f : featureFutures)
+				if (f.get() != null)
+					files.add(f.get());
+
 			cqopts.setInputFiles(files);
 			cqopts.setClusterTypeOp(options.getQuantiserType());
-			FileType ft = options.featureTypeOp.getMode() == LocalFeatureMode.ASIFTENRICHED ? FileType.ASIFTENRICHED_BINARY : FileType.BINARY_KEYPOINT; 
+			final FileType ft = options.featureTypeOp.getMode() == LocalFeatureMode.ASIFTENRICHED ? FileType.ASIFTENRICHED_BINARY
+					: FileType.BINARY_KEYPOINT;
 			cqopts.setFileType(ft);
-			byte [][] data = ClusterQuantiser.do_getSamples(cqopts);
+			final byte[][] data = ClusterQuantiser.do_getSamples(cqopts);
 			cluster = options.getQuantiserType().create(data);
-			
+
 			IOUtils.writeBinary(new File(options.getQuantiserFile()), cluster);
 		}
-		
-		//Make terms and save files [equivalent to direct index]
-		if (toolOpts.isVerbose()) System.err.println("Quantising features");
-		
-		List<QuantiserTask> quantiserTasks = new ArrayList<QuantiserTask>();
-		for (Future<File> f : featureFutures) {
+
+		// Make terms and save files [equivalent to direct index]
+		if (toolOpts.isVerbose())
+			System.err.println("Quantising features");
+
+		final List<QuantiserTask> quantiserTasks = new ArrayList<QuantiserTask>();
+		for (final Future<File> f : featureFutures) {
 			if (f.get() != null) {
-				quantiserTasks.add(new QuantiserTask(f.get(), options.forceRegeneration(), options.getFeatureType().getFeatureClass(), cluster));
+				quantiserTasks.add(new QuantiserTask(f.get(), options.forceRegeneration(), options.getFeatureType()
+						.getFeatureClass(), cluster));
 			}
 		}
-		List<Future<File>> quantFutures = es.invokeAll(quantiserTasks);
-		
-		//shutdown executors
+		final List<Future<File>> quantFutures = es.invokeAll(quantiserTasks);
+
+		// shutdown executors
 		es.shutdown();
-		
-		Class<? extends QuantisedLocalFeature<?>> qclass = options.getFeatureType().getFeatureClass() == Keypoint.class ? QuantisedKeypoint.class : QuantisedAffineSimulationKeypoint.class;
+
+		final Class<? extends QuantisedLocalFeature<?>> qclass = options.getFeatureType().getFeatureClass() == Keypoint.class ? QuantisedKeypoint.class
+				: QuantisedAffineSimulationKeypoint.class;
 		@SuppressWarnings({ "unchecked", "rawtypes" })
-		QLFFilesCollection<? extends QuantisedLocalFeature<?>> collection = new QLFFilesCollection(qclass, "\\.fv\\.loc", "");
-		for (Future<File> f : quantFutures) { 
+		final QLFFilesCollection<? extends QuantisedLocalFeature<?>> collection = new QLFFilesCollection(qclass,
+				"\\.fv\\.loc", "");
+		for (final Future<File> f : quantFutures) {
 			if (f.get() != null) {
 				collection.addFile(f.get());
 			}
 		}
-		
+
 		return new ProcessData(collection, cluster);
 	}
-	
-	protected void run(String [] args) throws IOException, InterruptedException, ExecutionException {
-	    CmdLineParser parser = new CmdLineParser(options);
-		
-	    try {
-		    parser.parseArgument(args);
-		} catch(CmdLineException e) {
-		    System.err.println(e.getMessage());
-		    System.err.println("Usage: java -jar ImageTerrier.jar [options...] paths_to_search");
-		    parser.printUsage(System.err);
-		    return;
+
+	protected void run(String[] args) throws Exception {
+		final CmdLineParser parser = new CmdLineParser(options);
+
+		try {
+			parser.parseArgument(args);
+		} catch (final CmdLineException e) {
+			System.err.println(e.getMessage());
+			System.err.println("Usage: java -jar ImageTerrier.jar [options...] paths_to_search");
+			parser.printUsage(System.err);
+			return;
 		}
 
 		ProcessData data;
@@ -239,47 +254,51 @@ public class BasicIndexer {
 		default:
 			throw new UnsupportedOperationException("InputMode " + options.getInputMode() + " is not supported");
 		}
-		
+
 		if (options.getSearchPaths().size() == 1) {
 			data.collection.setPathRegex(Pattern.quote(new File(options.getSearchPaths().get(0)).getAbsolutePath()), "");
 		}
-		
-		//configure indexing
+
+		// configure indexing
 		ApplicationSetup.setProperty("indexer.meta.forward.keys", "docno,path");
-		ApplicationSetup.setProperty("indexer.meta.forward.keylens", String.format("%d,%d", data.collection.getMaxNumIDChars(), data.collection.getMaxPathChars()));
+		ApplicationSetup.setProperty("indexer.meta.forward.keylens",
+				String.format("%d,%d", data.collection.getMaxNumIDChars(), data.collection.getMaxPathChars()));
 		ApplicationSetup.setProperty("indexer.meta.reverse.keys", "docno,path");
-		
-		//create inverted index from saved term files
-		if (options.isVerbose()) System.err.println("Building index");
-		
-		String filename = new File(options.getFilename()).getAbsolutePath();
+
+		// create inverted index from saved term files
+		if (options.isVerbose())
+			System.err.println("Building index");
+
+		final String filename = new File(options.getFilename()).getAbsolutePath();
 		new File(filename).mkdirs();
-		
-		ExtensibleSinglePassIndexer indexer = options.getIndexType().getIndexer(filename, "index");
-		indexer.createInvertedIndex(new Collection[] {data.collection});
-		
-		indexer.getCurrentIndex().setIndexProperty("index.feature.type", options.getInputModeOptions().getFeatureType().name());
+
+		final ExtensibleSinglePassIndexer indexer = options.getIndexType().getIndexer(filename, "index");
+		indexer.createInvertedIndex(new Collection[] { data.collection });
+
+		indexer.getCurrentIndex().setIndexProperty("index.feature.type",
+				options.getInputModeOptions().getFeatureType().name());
 		indexer.getCurrentIndex().setIndexProperty("index.lexicon.data-source", "fileinmem");
-		
+
 		if (options.getSearchPaths().size() == 1) {
-			indexer.getCurrentIndex().setIndexProperty("index.image.base.path", new File(options.getSearchPaths().get(0)).getAbsolutePath());
+			indexer.getCurrentIndex().setIndexProperty("index.image.base.path",
+					new File(options.getSearchPaths().get(0)).getAbsolutePath());
 		} else {
 			indexer.getCurrentIndex().setIndexProperty("index.image.base.path", "/");
 		}
-		
+
 		if (data.cluster != null) {
-			QuantiserIndex quantIndex = new QuantiserIndex(data.cluster);
+			final QuantiserIndex quantIndex = new QuantiserIndex(data.cluster);
 			quantIndex.save(indexer.getCurrentIndex());
 			indexer.getCurrentIndex().addIndexStructure("featureQuantiser", quantIndex.getClass().getName());
 		}
-		
+
 		indexer.getCurrentIndex().flush();
-		
-		//optionally remove term files?
+
+		// optionally remove term files?
 	}
-	
-	public static void main(String [] args) throws IOException, InterruptedException, ExecutionException {
-		BasicIndexer indexer = new BasicIndexer();
+
+	public static void main(String[] args) throws Exception {
+		final BasicIndexer indexer = new BasicIndexer();
 		indexer.run(args);
 	}
 }

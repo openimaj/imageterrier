@@ -172,6 +172,11 @@
 			<name>ImageTerrier Maven Releases Repository</name>
 			<url>http://maven.imageterrier.org</url>
 		</repository>
+		<repository>
+			<id>openimaj-snapshots</id>
+			<name>OpenIMAJ Maven Snaphots Repository</name>
+			<url>http://snapshots.openimaj.org</url>
+		</repository>
 	</repositories>
 	<distributionManagement>
 		<repository>

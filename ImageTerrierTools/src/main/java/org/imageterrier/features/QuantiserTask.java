@@ -38,41 +38,43 @@ import org.openimaj.feature.local.list.LocalFeatureList;
 import org.openimaj.feature.local.list.MemoryLocalFeatureList;
 import org.openimaj.feature.local.quantised.QuantisedLocalFeature;
 import org.openimaj.io.IOUtils;
-import org.openimaj.ml.clustering.SpatialClusterer;
+import org.openimaj.ml.clustering.SpatialClusters;
 import org.openimaj.ml.clustering.assignment.HardAssigner;
 import org.openimaj.ml.clustering.assignment.SoftAssigner;
 
-
 public class QuantiserTask implements Callable<File> {
 	protected static Logger logger = Logger.getLogger(QuantiserTask.class);
-	
+
 	protected boolean forceRegeneration;
 	protected File featureFile;
 	protected Class<? extends LocalFeature<?>> featureClz;
-	protected SpatialClusterer<?,?> quantizer;
-	protected HardAssigner<?,?,?> hardAssigner;
+	protected SpatialClusters<?> quantizer;
+	protected HardAssigner<?, ?, ?> hardAssigner;
 
-	public QuantiserTask(File featureFile, boolean forceRegeneration, Class<? extends LocalFeature<?>> featureClz, SpatialClusterer<?,?> cluster) {
+	public QuantiserTask(File featureFile, boolean forceRegeneration, Class<? extends LocalFeature<?>> featureClz,
+			SpatialClusters<?> cluster)
+	{
 		this.featureFile = featureFile;
 		this.forceRegeneration = forceRegeneration;
 		this.featureClz = featureClz;
 		this.quantizer = cluster;
 		this.hardAssigner = cluster.defaultHardAssigner();
 	}
-	
+
 	public File getLocFile() {
 		return makeFeatureFilename(".loc");
 	}
-	
+
 	@Override
 	public File call() throws Exception {
 		return call(getLocFile());
 	}
-	
+
 	/**
-	 * Process feature and make loc file.
-	 * Processed loc file will be created at saveLocation, 
-	 * unless one already existed alongside the image, in which case that one is returned.
+	 * Process feature and make loc file. Processed loc file will be created at
+	 * saveLocation, unless one already existed alongside the image, in which
+	 * case that one is returned.
+	 * 
 	 * @param filename
 	 * @return filename
 	 * @throws Exception
@@ -82,63 +84,73 @@ public class QuantiserTask implements Callable<File> {
 			logger.info("Loading visual terms for " + featureFile.getName());
 			return filename;
 		}
-		
-		//load features
-		MemoryLocalFeatureList<? extends LocalFeature<?>> keys = MemoryLocalFeatureList.read(featureFile, featureClz);
-		
-		//Quantise the sift feature
+
+		// load features
+		final MemoryLocalFeatureList<? extends LocalFeature<?>> keys = MemoryLocalFeatureList.read(featureFile,
+				featureClz);
+
+		// Quantise the sift feature
 		logger.info("Generating visual terms for " + featureFile.getName());
-		LocalFeatureList<QuantisedLocalFeature<?>> keyLoc = quantiseFeatures(hardAssigner, keys);
-		
-		//Save the loc file
+		final LocalFeatureList<QuantisedLocalFeature<?>> keyLoc = quantiseFeatures(hardAssigner, keys);
+
+		// Save the loc file
 		IOUtils.writeBinary(filename, keyLoc);
-		
+
 		return filename;
 	}
-	
+
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public static LocalFeatureList<QuantisedLocalFeature<?>> quantiseFeatures(HardAssigner quantizer, List<? extends LocalFeature> keys) {
-		LocalFeatureList<QuantisedLocalFeature<?>> qkeys = new MemoryLocalFeatureList<QuantisedLocalFeature<?>>(keys.size());
-		
+	public static LocalFeatureList<QuantisedLocalFeature<?>> quantiseFeatures(HardAssigner quantizer,
+			List<? extends LocalFeature> keys)
+	{
+		final LocalFeatureList<QuantisedLocalFeature<?>> qkeys = new MemoryLocalFeatureList<QuantisedLocalFeature<?>>(
+				keys.size());
+
 		if (quantizer.getClass().getName().contains("Byte")) {
-			for (LocalFeature k : keys) {
-				int id = ((HardAssigner<byte[],?,?>)quantizer).assign((byte[])k.getFeatureVector().getVector());
+			for (final LocalFeature k : keys) {
+				final int id = ((HardAssigner<byte[], ?, ?>) quantizer).assign((byte[]) k.getFeatureVector().getVector());
 				qkeys.add(new QuantisedLocalFeature(k.getLocation(), id));
 			}
 		} else {
-			for (LocalFeature k : keys) {
-				int id = ((HardAssigner<int[],?,?>)quantizer).assign((int[])k.getFeatureVector().getVector());
+			for (final LocalFeature k : keys) {
+				final int id = ((HardAssigner<int[], ?, ?>) quantizer).assign((int[]) k.getFeatureVector().getVector());
 				qkeys.add(new QuantisedLocalFeature(k.getLocation(), id));
 			}
 		}
-		
+
 		return qkeys;
 	}
-	
+
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public static LocalFeatureList<QuantisedLocalFeature<?>> quantiseFeaturesSoft(SoftAssigner<?,?> quantizer, List<? extends LocalFeature> keys) {
-		LocalFeatureList<QuantisedLocalFeature<?>> qkeys = new MemoryLocalFeatureList<QuantisedLocalFeature<?>>(keys.size());
-		
+	public static LocalFeatureList<QuantisedLocalFeature<?>> quantiseFeaturesSoft(SoftAssigner<?, ?> quantizer,
+			List<? extends LocalFeature> keys)
+	{
+		final LocalFeatureList<QuantisedLocalFeature<?>> qkeys = new MemoryLocalFeatureList<QuantisedLocalFeature<?>>(
+				keys.size());
+
 		if (quantizer.getClass().getName().contains("Byte")) {
-			for (LocalFeature k : keys) {
-				int [] ids = ((SoftAssigner<byte[],?>)quantizer).assign(((byte[])k.getFeatureVector().getVector()));
-				for (int id : ids) qkeys.add(new QuantisedLocalFeature(k.getLocation(), id));
+			for (final LocalFeature k : keys) {
+				final int[] ids = ((SoftAssigner<byte[], ?>) quantizer)
+						.assign(((byte[]) k.getFeatureVector().getVector()));
+				for (final int id : ids)
+					qkeys.add(new QuantisedLocalFeature(k.getLocation(), id));
 			}
 		} else {
-			for (LocalFeature k : keys) {
-				int [] ids = ((SoftAssigner<int[],?>)quantizer).assign(((int[])k.getFeatureVector().getVector()));
-				for (int id : ids) qkeys.add(new QuantisedLocalFeature(k.getLocation(), id));
+			for (final LocalFeature k : keys) {
+				final int[] ids = ((SoftAssigner<int[], ?>) quantizer).assign(((int[]) k.getFeatureVector().getVector()));
+				for (final int id : ids)
+					qkeys.add(new QuantisedLocalFeature(k.getLocation(), id));
 			}
 		}
-		
+
 		return qkeys;
 	}
 
 	protected File makeFeatureFilename(String extension) {
 		String s = featureFile.toString();
-		
+
 		s = s + extension;
-		
+
 		return new File(s);
 	}
 }
