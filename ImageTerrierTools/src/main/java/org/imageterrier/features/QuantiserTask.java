@@ -47,11 +47,11 @@ public class QuantiserTask implements Callable<File> {
 
 	protected boolean forceRegeneration;
 	protected File featureFile;
-	protected Class<? extends LocalFeature<?>> featureClz;
+	protected Class<? extends LocalFeature<?, ?>> featureClz;
 	protected SpatialClusters<?> quantizer;
 	protected HardAssigner<?, ?, ?> hardAssigner;
 
-	public QuantiserTask(File featureFile, boolean forceRegeneration, Class<? extends LocalFeature<?>> featureClz,
+	public QuantiserTask(File featureFile, boolean forceRegeneration, Class<? extends LocalFeature<?, ?>> featureClz,
 			SpatialClusters<?> cluster)
 	{
 		this.featureFile = featureFile;
@@ -86,7 +86,7 @@ public class QuantiserTask implements Callable<File> {
 		}
 
 		// load features
-		final MemoryLocalFeatureList<? extends LocalFeature<?>> keys = MemoryLocalFeatureList.read(featureFile,
+		final MemoryLocalFeatureList<? extends LocalFeature<?, ?>> keys = MemoryLocalFeatureList.read(featureFile,
 				featureClz);
 
 		// Quantise the sift feature

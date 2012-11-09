@@ -206,7 +206,7 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 		@Override
 		protected Document recordToDocument(Text key, BytesWritable value) throws IOException {
 			// extract features
-			LocalFeatureList<? extends LocalFeature<?>> features = null;
+			LocalFeatureList<? extends LocalFeature<?, ?>> features = null;
 			try {
 				logger.info("Extracting features...");
 				features = options.getInputModeOptions().getFeatureType().extract(value.getBytes());
@@ -320,17 +320,18 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 
 						@Override
 						public boolean offer(Runnable e)
-				{
-					// turn offer() and add() into a blocking calls (unless
-					// interrupted)
-						try {
-							put(e);
-							return true;
-						} catch (final InterruptedException ie) {
-							Thread.currentThread().interrupt();
+						{
+							// turn offer() and add() into a blocking calls
+							// (unless
+							// interrupted)
+							try {
+								put(e);
+								return true;
+							} catch (final InterruptedException ie) {
+								Thread.currentThread().interrupt();
+							}
+							return false;
 						}
-						return false;
-					}
 					});
 
 			return options.getIndexType().getIndexer(null, null);
@@ -340,7 +341,7 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 		@Override
 		protected Document recordToDocument(Text key, BytesWritable value) throws IOException {
 			// extract features
-			LocalFeatureList<? extends LocalFeature<?>> features = null;
+			LocalFeatureList<? extends LocalFeature<?, ?>> features = null;
 			try {
 				logger.info("Extracting features...");
 				features = options.getInputModeOptions().getFeatureType().extract(value.getBytes());
