@@ -109,9 +109,9 @@
 				<configuration>
 					<finalName>HadoopImageTerrier</finalName>
 					<appendAssemblyId>false</appendAssemblyId>
-					<descriptorRefs>
-						<descriptorRef>jar-with-dependencies</descriptorRef>
-					</descriptorRefs>
+					<descriptors>
+            <descriptor>src/main/assembly/fatjar.xml</descriptor>
+          </descriptors>
 					<archive>
 						<manifest>
 							<mainClass>org.imageterrier.indexers.hadoop.HadoopIndexer</mainClass>

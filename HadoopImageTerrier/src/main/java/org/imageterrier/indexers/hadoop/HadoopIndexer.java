@@ -67,8 +67,8 @@ import org.openimaj.ml.clustering.ByteCentroidsResult;
 import org.openimaj.ml.clustering.IntCentroidsResult;
 import org.openimaj.ml.clustering.SpatialClusters;
 import org.openimaj.ml.clustering.assignment.HardAssigner;
-import org.openimaj.ml.clustering.assignment.hard.ApproximateByteEuclideanAssigner;
-import org.openimaj.ml.clustering.assignment.hard.ApproximateIntEuclideanAssigner;
+import org.openimaj.ml.clustering.assignment.hard.KDTreeByteEuclideanAssigner;
+import org.openimaj.ml.clustering.assignment.hard.KDTreeIntEuclideanAssigner;
 import org.terrier.indexing.AbstractHadoopIndexer;
 import org.terrier.indexing.Document;
 import org.terrier.indexing.ExtensibleSinglePassIndexer;
@@ -149,9 +149,9 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 					assigner = clusters.defaultHardAssigner();
 				} else {
 					if (clusters instanceof ByteCentroidsResult)
-						assigner = new ApproximateByteEuclideanAssigner((ByteCentroidsResult) clusters);
+						assigner = new KDTreeByteEuclideanAssigner((ByteCentroidsResult) clusters);
 					else if (clusters instanceof IntCentroidsResult)
-						assigner = new ApproximateIntEuclideanAssigner((IntCentroidsResult) clusters);
+						assigner = new KDTreeIntEuclideanAssigner((IntCentroidsResult) clusters);
 					else
 						assigner = clusters.defaultHardAssigner();
 				}
@@ -407,9 +407,9 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 			assigner = clusters.defaultHardAssigner();
 		} else {
 			if (clusters instanceof ByteCentroidsResult)
-				assigner = new ApproximateByteEuclideanAssigner((ByteCentroidsResult) clusters);
+				assigner = new KDTreeByteEuclideanAssigner((ByteCentroidsResult) clusters);
 			else if (clusters instanceof IntCentroidsResult)
-				assigner = new ApproximateIntEuclideanAssigner((IntCentroidsResult) clusters);
+				assigner = new KDTreeIntEuclideanAssigner((IntCentroidsResult) clusters);
 			else
 				assigner = clusters.defaultHardAssigner();
 		}
@@ -464,8 +464,8 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 			}
 		}
 		// Load quantiser (if it exists), extract header, count codebook size
-		final String quantFile = options.getInputModeOptions().getQuantiserFile();
-		if (quantFile != null) {
+		if (options.getInputModeOptions().hasQuantiserFile()) {
+			final String quantFile = options.getInputModeOptions().getQuantiserFile();
 			System.out.println("Loading codebook to see its size");
 			final SpatialClusters<?> quantiser = readClusters(options);
 			System.out.println("Setting codebook size: " + quantiser.numClusters());
