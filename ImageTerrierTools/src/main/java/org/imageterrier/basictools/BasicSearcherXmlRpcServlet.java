@@ -35,43 +35,41 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.terrier.matching.ResultSet;
-
 /*
  * Basic search methods to be exposed as XmlRpc methods
  */
 public class BasicSearcherXmlRpcServlet {
-	public static BasicSearcher searcher;
+	public static BasicSearcher<BasicSearcherOptions > searcher;
 	public static BasicSearcherOptions options;
-	
+
 	public List<Map<String, Object>> search(String localImageFile, boolean useNeighbours) throws Exception {
 		return search(localImageFile, options.getLimit());
 	}
-	
+
 	public List<Map<String, Object>> search(String localImageFile, int limit) throws Exception {
 		List<Map<String, Object>> results = new ArrayList<Map<String, Object>>();
-		ResultSet rs = searcher.search(new File(localImageFile), null, options);
+		List<DocidScore> rs = searcher.search(new File(localImageFile), null, options);
 
-		if (limit<=0) limit = rs.getDocids().length;
-			
-		for (int i=0; i<limit; i++) {
-			File file = searcher.getFile(rs.getDocids()[i]);
+		if (limit<=0) limit = rs.size();
 
-			if (rs.getScores()[i] <= 0) break; //filter 0 results 
-				
+		for (DocidScore docidscore : rs) {
+			File file = searcher.getFile(searcher.index,docidscore.first);
+
+			if (docidscore.second <= 0) break; //filter 0 results
+
 			Map<String, Object> entry = new HashMap<String, Object>();
 			entry.put("name", file.toString());
-			entry.put("score", rs.getScores()[i]);
+			entry.put("score", docidscore.second);
 			results.add(entry);
 		}
-		
+
 		return results;
 	}
-	
+
 	public List<Map<String, Object>> search(byte[] imageBytes) throws Exception {
 		return search(imageBytes, options.getLimit());
 	}
-	
+
 	public List<Map<String, Object>> search(byte[] imageBytes, int limit) throws Exception {
 		System.out.format("Search: %d byte image, limit:%d\n", imageBytes.length, limit);
 		File tmp = File.createTempFile("imageterrier-xmlrpc-image", ".jpg");

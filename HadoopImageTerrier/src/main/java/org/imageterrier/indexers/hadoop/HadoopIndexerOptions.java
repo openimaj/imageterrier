@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.imageterrier.toolopts.IndexType;
 import org.imageterrier.toolopts.IndexType.IndexTypeOptions;
@@ -19,11 +20,12 @@ import org.openimaj.image.feature.local.keypoints.quantised.QuantisedKeypoint;
 
 /**
  * Options object for the Hadoop Indexer
- * 
+ *
  * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
- * 
+ *
  */
 public class HadoopIndexerOptions {
+	public static final String DOCUMENT_ID_FILTER_FILE = "org.imageterrier.indexers.hadoop.document.filter_file";
 	@Option(
 			name = "--type",
 			aliases = "-t",
@@ -38,6 +40,9 @@ public class HadoopIndexerOptions {
 
 	@Option(name = "--documentPartition", required = false, usage = "enable document-partitioned mode")
 	private boolean documentPartitionMode = false;
+
+	@Option(name = "--documentFilterPath", required = false, usage = "If set documentids in this file are used to construct the index")
+	private String documentIdFilterFile = null;
 
 	@Option(name = "--output", aliases = "-o", usage = "path at which to write index", required = true, metaVar = "path")
 	private String outputPath;
@@ -124,7 +129,7 @@ public class HadoopIndexerOptions {
 	 * internal sequence files starting with the name "part". This allows easy
 	 * coupling to features generated from previous reducer passes (i.e. from
 	 * the cluster-quantiser).
-	 * 
+	 *
 	 * @return the input paths
 	 * @throws IOException
 	 */
@@ -164,5 +169,11 @@ public class HadoopIndexerOptions {
 
 	public void setNumReducers(int nReducers) {
 		this.numReducers = nReducers;
+	}
+
+	public void configureFilterMode(Configuration configuration) {
+		if(documentIdFilterFile!=null){
+			configuration.set(HadoopIndexerOptions.DOCUMENT_ID_FILTER_FILE, this.documentIdFilterFile);
+		}
 	}
 }

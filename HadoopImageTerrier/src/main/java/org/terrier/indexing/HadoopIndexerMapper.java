@@ -31,12 +31,17 @@ package org.terrier.indexing;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.log4j.Logger;
 import org.imageterrier.hadoop.fs.TerrierHDFSAdaptor;
 import org.imageterrier.hadoop.mapreduce.PositionAwareSplitWrapper;
+import org.imageterrier.indexers.hadoop.HadoopIndexerOptions;
+import org.openimaj.time.Timer;
+import org.openimaj.util.filter.Filter;
 import org.terrier.structures.FieldDocumentIndexEntry;
 import org.terrier.structures.Index;
 import org.terrier.structures.SimpleDocumentIndexEntry;
@@ -53,62 +58,65 @@ import org.terrier.utility.io.WrappedIOException;
 
 
 public abstract class HadoopIndexerMapper<VALUEIN> extends Mapper<Text, VALUEIN, NewSplitEmittedTerm, MapEmittedPostingList> implements SinglePassIndexerFlushDelegate {
+	private final Logger logger = Logger.getLogger(HadoopIndexerMapper.class);
 	/** the underlying indexer object */
 	protected ExtensibleSinglePassIndexer proxyIndexer;
-	
+
 	/** the current map context */
 	protected Context currentContext;
-	
+
 	/** Current map number */
 	protected String mapTaskID;
 
 	/** the split number of the map context */
 	protected int splitnum;
-	
+
 	/** How many flushes have we made */
 	protected int flushNo;
-	
+
 	/** OutputStream for the the data on the runs (runNo, flushes etc) */
 	protected DataOutputStream runData;
-	
-	public static enum Counters {  
-		INDEXED_DOCUMENTS, INDEXED_EMPTY_DOCUMENTS, INDEXER_FLUSHES, INDEXED_TOKENS, INDEXED_POINTERS;
+
+	private static Filter<String> filter;
+
+	public static enum Counters {
+		INDEXED_DOCUMENTS,INDEXED_DOCUMENTS_SKIPPED, INDEXED_EMPTY_DOCUMENTS, INDEXER_FLUSHES, INDEXED_TOKENS, INDEXED_POINTERS;
 	};
-	
+
 	/**
 	 * This method returns an instance of an indexer, possibly
 	 * using parameters extracted from the context. This is only called
 	 * once at the beginning of the mapper setup, so is also a good
 	 * place to do any extra initialisation.
-	 * 
+	 *
 	 * @param context
 	 * @return
-	 * @throws IOException 
+	 * @throws IOException
 	 */
 	protected abstract ExtensibleSinglePassIndexer createIndexer(Context context) throws IOException;
-		
+
 	protected int getSplitNum(Context context) {
 		return ((PositionAwareSplitWrapper<?>)context.getInputSplit()).getSplitIndex();
 	}
-	
+
 	protected String getTaskID(Context context) {
 		return context.getTaskAttemptID().getTaskID().toString();
 	}
-	
+
 	@Override
 	protected void setup(Context context) throws IOException, InterruptedException {
 		TerrierHDFSAdaptor.initialiseHDFSAdaptor(context.getConfiguration());
-		
+
 		proxyIndexer = createIndexer(context);
-		
+
 		currentContext = context;
 		splitnum = getSplitNum(context);
-		
+
 		proxyIndexer.setFlushDelegate(this);
-		
+
 		Path indexDestination = FileOutputFormat.getWorkOutputPath(context);
-		indexDestination.getFileSystem(context.getConfiguration()).mkdirs(indexDestination); 
-		
+		indexDestination.getFileSystem(context.getConfiguration()).mkdirs(indexDestination);
+
 		mapTaskID = getTaskID(context);
 		proxyIndexer.currentIndex = Index.createNewIndex(indexDestination.toString(), mapTaskID);
 		proxyIndexer.maxMemory = Long.parseLong(ApplicationSetup.getProperty("indexing.singlepass.max.postings.memory", "0"));
@@ -117,11 +125,25 @@ public abstract class HadoopIndexerMapper<VALUEIN> extends Mapper<Text, VALUEIN,
 		proxyIndexer.currentIndex.setIndexProperty("index.preloadIndices.disabled", "true");
 		runData = new DataOutputStream(Files.writeFileStream(new Path(indexDestination, mapTaskID+".runs").toString()));
 		runData.writeUTF(mapTaskID);
-		
+
 		proxyIndexer.createMemoryPostings();
 		proxyIndexer.docIndexBuilder = new DocumentIndexBuilder(proxyIndexer.currentIndex, "document");
 		proxyIndexer.metaBuilder = createMetaIndexBuilder();
 		proxyIndexer.emptyDocIndexEntry = (FieldScore.FIELDS_COUNT > 0) ? new FieldDocumentIndexEntry(FieldScore.FIELDS_COUNT) : new SimpleDocumentIndexEntry();
+
+		final String filterFile = context.getConfiguration().get(HadoopIndexerOptions.DOCUMENT_ID_FILTER_FILE);
+		synchronized(HadoopIndexerMapper.class){
+			if(filterFile!=null){
+				if(filter==null){
+					logger.warn("Loading filter...");
+					Timer timer = Timer.timer();
+					FileSystem fs = FileSystem.get(context.getConfiguration());
+					Path p = new Path(filterFile);
+					filter = new DocListFilter(fs,p);
+					logger.warn("Took:" + timer.duration()/1000f + "s");
+				}
+			}
+		}
 	}
 
 	protected MetaIndexBuilder createMetaIndexBuilder() {
@@ -130,53 +152,59 @@ public abstract class HadoopIndexerMapper<VALUEIN> extends Mapper<Text, VALUEIN,
 		//no reverse metadata during main indexing, pick up as separate job later
 		return new CompressingMetaIndexBuilder(proxyIndexer.currentIndex, forwardMetaKeys, metaKeyLengths, new String[0]);
 	}
-	
+
 	/**
 	 * This method transforms the Hadoop record to a Terrier document
 	 * @param value
 	 * @return
-	 * @throws IOException 
+	 * @throws IOException
 	 */
 	protected abstract Document recordToDocument(Text key, VALUEIN value) throws IOException;
-	
+
 	/**
 	 * Map processes a single document. Stores the terms in the document along with the posting list
 	 * until memory is full or all documents in this map have been processed then writes then to
-	 * the output collector.  
+	 * the output collector.
 	 * @param key Wrapper for Document Identifier
 	 * @param value The document itself (a serialized list of quantised features)
-	 * @param context The mapper context 
+	 * @param context The mapper context
 	 * @throws IOException
 	 */
 	@Override
 	protected void map(Text key, VALUEIN value, Context context) throws IOException, InterruptedException {
 		final String docno = key.toString();
+		if(filter!=null){
+			if(!filter.accept(docno)){
+				context.getCounter(Counters.INDEXED_DOCUMENTS_SKIPPED).increment(1);
+				return;
+			}
+		}
 		context.setStatus("Currently indexing "+docno);
-		
+
 		final Document doc = recordToDocument(key, value);
 		if(doc==null) return;
-		
+
 		indexDocument(doc, context);
 		context.getCounter(Counters.INDEXED_DOCUMENTS).increment(1);
 	}
-	
+
 	protected void indexDocument(final Document doc, Context context) throws IOException {
 		/* setup for parsing */
 		proxyIndexer.createDocumentPostings();
-		
+
 		String term;//term we're currently processing
 		proxyIndexer.numOfTokensInDocument = 0;
-		
+
 		//get each term in the document
 		while (!doc.endOfDocument()) {
 			context.progress();
-			
+
 			if ((term = doc.getNextTerm())!=null && !term.equals("")) {
 				proxyIndexer.termFields = doc.getFields();
-				
+
 				//perform pre-op
 				proxyIndexer.preProcess(doc, term); //JH MOD
-				
+
 				/* pass term into TermPipeline (stop, stem etc) */
 				proxyIndexer.pipeline_first.processTerm(term);
 				/* the term pipeline will eventually add the term to this object. */
@@ -185,7 +213,7 @@ public abstract class HadoopIndexerMapper<VALUEIN> extends Mapper<Text, VALUEIN,
 					proxyIndexer.numOfTokensInDocument > proxyIndexer.MAX_TOKENS_IN_DOCUMENT)
 				break;
 		}
-		
+
 		//if we didn't index all tokens from document,
 		//we need tocurrentId get to the end of the document.
 		while (!doc.endOfDocument()){
@@ -207,43 +235,43 @@ public abstract class HadoopIndexerMapper<VALUEIN> extends Mapper<Text, VALUEIN,
 			try{
 				proxyIndexer.numberOfTokens += proxyIndexer.numOfTokensInDocument;
 				proxyIndexer.indexDocument(doc.getAllProperties(), proxyIndexer.termsInDocument);
-				
-				context.getCounter(Counters.INDEXED_TOKENS).increment(proxyIndexer.numOfTokensInDocument);				
+
+				context.getCounter(Counters.INDEXED_TOKENS).increment(proxyIndexer.numOfTokensInDocument);
 				context.getCounter(Counters.INDEXED_POINTERS).increment(proxyIndexer.termsInDocument.getNumberOfPointers());
 			} catch (IOException ioe) {
-				throw ioe;				
+				throw ioe;
 			} catch (Exception e) {
 				throw new WrappedIOException(e);
 			}
 		}
-		
+
 		proxyIndexer.termsInDocument.clear();
 	}
-	
+
 	/** causes the posting lists built up in memory to be flushed out */
 	@Override
 	public void forceFlush() throws IOException
 	{
 		ExtensibleSinglePassIndexer.logger.info("Map "+mapTaskID+", flush requested, containing "+proxyIndexer.numberOfDocsSinceFlush+" documents, flush "+flushNo);
-		
+
 		if (proxyIndexer.mp == null)
 			throw new IOException("Map flushed before any documents were indexed");
-		
+
 		proxyIndexer.mp.finish(new NewHadoopRunWriter<VALUEIN>(currentContext, mapTaskID, splitnum, flushNo));
 		runData.writeInt(proxyIndexer.currentId);
-		
+
 		if (currentContext != null)
 			currentContext.getCounter(Counters.INDEXER_FLUSHES).increment(1);
-		
+
 		System.gc();
-		
+
 		proxyIndexer.createMemoryPostings();
 		proxyIndexer.memoryCheck.reset();
 		proxyIndexer.numberOfDocsSinceFlush = 0;
 		proxyIndexer.currentId = 0;
 		flushNo++;
 	}
-	
+
 	@Override
 	protected void cleanup(Context context) throws IOException, InterruptedException {
 		proxyIndexer.forceFlush();

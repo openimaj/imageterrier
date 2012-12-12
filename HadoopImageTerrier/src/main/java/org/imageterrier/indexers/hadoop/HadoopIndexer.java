@@ -82,7 +82,7 @@ import org.terrier.utility.Files;
 
 /**
  * @author Jonathon Hare
- * 
+ *
  */
 public class HadoopIndexer extends AbstractHadoopIndexer {
 	static {
@@ -527,7 +527,7 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 
 	/**
 	 * Process the arguments and start the map-reduce indexing.
-	 * 
+	 *
 	 * @param args
 	 * @throws Exception
 	 */
@@ -540,6 +540,7 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 		try {
 			parser.parseArgument(args);
 		} catch (final CmdLineException e) {
+			parser.printUsage(System.err);
 			logger.fatal(e.getMessage());
 			logger.fatal(usage());
 			return 1;
@@ -558,6 +559,7 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 
 		// set args string
 		job.getConfiguration().setStrings(INDEXER_ARGS_STRING, args);
+		options.configureFilterMode(job.getConfiguration());
 
 		// run job
 		JobID jobId = null;

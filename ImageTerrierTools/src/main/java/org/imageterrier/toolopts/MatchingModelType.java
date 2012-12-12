@@ -38,7 +38,7 @@ import org.terrier.utility.ApplicationSetup;
 
 /**
  * Ranking models
- * 
+ *
  * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
  */
 public enum MatchingModelType {
@@ -46,8 +46,14 @@ public enum MatchingModelType {
 		@Override
 		public <T extends QuantisedLocalFeature<?>> void configureRequest(SearchRequest request, QLFDocumentQuery<T> query) {
 			request.addMatchingModel(ApplicationSetup.getProperty("matching.mmodel", "Matching"), "TF_IDF");
-		}	
-	}, 
+		}
+	},
+	TFIDF_DAAT{
+		@Override
+		public <T extends QuantisedLocalFeature<?>> void configureRequest(SearchRequest request, QLFDocumentQuery<T> query) {
+			request.addMatchingModel(ApplicationSetup.getProperty("matching.mmodel", "org.terrier.matching.daat.Full"), "TF_IDF");
+		}
+	},
 	L1 {
 		@Override
 		public <T extends QuantisedLocalFeature<?>> void configureRequest(SearchRequest request, QLFDocumentQuery<T> query) {
@@ -55,7 +61,7 @@ public enum MatchingModelType {
 			int max = 0;
 			for (T ln : query.getDocument().getEntries()) {
 				counts.adjustOrPutValue(ln.id, 1, 1);
-				if (counts.get(ln.id) > max) max = counts.get(ln.id);			
+				if (counts.get(ln.id) > max) max = counts.get(ln.id);
 			}
 
 			request.addMatchingModel(ApplicationSetup.getProperty("matching.mmodel", "Matching"), org.imageterrier.models.L1WeightingModel.class.getName());
@@ -70,12 +76,12 @@ public enum MatchingModelType {
 			int max = 0;
 			for (T ln : query.getDocument().getEntries()) {
 				counts.adjustOrPutValue(ln.id, 1, 1);
-				if (counts.get(ln.id) > max) max = counts.get(ln.id);			
+				if (counts.get(ln.id) > max) max = counts.get(ln.id);
 			}
 
 			request.addMatchingModel(ApplicationSetup.getProperty("matching.mmodel", "Matching"), org.imageterrier.models.L1WeightingModel.class.getName());
 			request.setControl("c_set", "true");
-			request.setControl("c", "" + ((double)max / (double)query.getNumberOfTerms()*(double)query.getNumberOfTerms()));
+			request.setControl("c", "" + ((double)max / (double)query.getNumberOfTerms()*query.getNumberOfTerms()));
 		}
 	},
 	COSINE {
@@ -85,12 +91,12 @@ public enum MatchingModelType {
 			int max = 0;
 			for (T ln : query.getDocument().getEntries()) {
 				counts.adjustOrPutValue(ln.id, 1, 1);
-				if (counts.get(ln.id) > max) max = counts.get(ln.id);			
+				if (counts.get(ln.id) > max) max = counts.get(ln.id);
 			}
 
 			request.addMatchingModel(ApplicationSetup.getProperty("matching.mmodel", "Matching"), org.imageterrier.models.CosineWeightingModel.class.getName());
 			request.setControl("c_set", "true");
-			request.setControl("c", "" + ((double)max / (double)query.getNumberOfTerms()*(double)query.getNumberOfTerms()));
+			request.setControl("c", "" + ((double)max / (double)query.getNumberOfTerms()*query.getNumberOfTerms()));
 			request.setControl("ql_set", "true");
 			//				request.setControl("ql", "" + query.);
 		}
@@ -102,10 +108,25 @@ public enum MatchingModelType {
 			int max = 0;
 			for (T ln : query.getDocument().getEntries()) {
 				counts.adjustOrPutValue(ln.id, 1, 1);
-				if (counts.get(ln.id) > max) max = counts.get(ln.id);			
+				if (counts.get(ln.id) > max) max = counts.get(ln.id);
 			}
 
 			request.addMatchingModel(ApplicationSetup.getProperty("matching.mmodel", "Matching"), org.imageterrier.models.L1IDFWeightingModel.class.getName());
+			request.setControl("c_set", "true");
+			request.setControl("c", "" + ((double)max / (double)query.getNumberOfTerms()));
+		}
+	},
+	L1IDF_DAAT {
+		@Override
+		public <T extends QuantisedLocalFeature<?>> void configureRequest(SearchRequest request, QLFDocumentQuery<T> query) {
+			TIntIntHashMap counts = new TIntIntHashMap();
+			int max = 0;
+			for (T ln : query.getDocument().getEntries()) {
+				counts.adjustOrPutValue(ln.id, 1, 1);
+				if (counts.get(ln.id) > max) max = counts.get(ln.id);
+			}
+
+			request.addMatchingModel(ApplicationSetup.getProperty("matching.mmodel", "org.terrier.matching.daat.Full"), org.imageterrier.models.L1IDFWeightingModel.class.getName());
 			request.setControl("c_set", "true");
 			request.setControl("c", "" + ((double)max / (double)query.getNumberOfTerms()));
 		}

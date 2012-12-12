@@ -30,6 +30,8 @@ package org.imageterrier.basictools;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,12 +45,14 @@ import org.apache.xmlrpc.server.PropertyHandlerMapping;
 import org.apache.xmlrpc.server.XmlRpcHandlerMapping;
 import org.apache.xmlrpc.webserver.ServletWebServer;
 import org.apache.xmlrpc.webserver.XmlRpcServlet;
+import org.imageterrier.basictools.BasicSearcherOptions.PrintModeOption;
 import org.imageterrier.features.FeatureTask;
 import org.imageterrier.features.QuantiserTask;
 import org.imageterrier.locfile.QLFDocument;
 import org.imageterrier.querying.parser.QLFDocumentQuery;
-import org.imageterrier.structures.indexing.QuantiserIndex;
 import org.imageterrier.toolopts.ScoreModifierType;
+import org.imageterrier.tools.multi.AssignerLoader;
+import org.imageterrier.tools.multi.AssignerLoader.AssignerLoadListener;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.openimaj.feature.local.list.LocalFeatureList;
@@ -57,45 +61,90 @@ import org.openimaj.image.DisplayUtilities;
 import org.openimaj.image.ImageUtilities;
 import org.openimaj.image.MBFImage;
 import org.openimaj.math.geometry.shape.Rectangle;
-import org.openimaj.ml.clustering.CentroidsProvider;
 import org.openimaj.ml.clustering.SpatialClusters;
 import org.openimaj.ml.clustering.assignment.Assigner;
 import org.openimaj.ml.clustering.assignment.HardAssigner;
 import org.openimaj.ml.clustering.assignment.SoftAssigner;
-import org.openimaj.ml.clustering.assignment.soft.ByteKNNAssigner;
-import org.openimaj.ml.clustering.assignment.soft.IntKNNAssigner;
 import org.openimaj.tools.localfeature.LocalFeatureMode;
+import org.terrier.compression.BitFileBuffered;
 import org.terrier.matching.ResultSet;
 import org.terrier.querying.Manager;
 import org.terrier.querying.SearchRequest;
 import org.terrier.structures.Index;
 import org.terrier.utility.ApplicationSetup;
 
+
 /**
  * The ImageTerrier BasicSearcher tool. Allows an index to be loaded and
  * searched.
- * 
+ *
  * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
- * 
+ *
  */
-public class BasicSearcher {
+public class BasicSearcher<SEARCH_OPTIONS extends BasicSearcherOptions> {
 	static {
 		BasicTerrierConfig.configure();
+		try {
+			Field dbl = BitFileBuffered.class.getDeclaredField("DEFAULT_BUFFER_LENGTH");
+			dbl.setAccessible(true);
+			Field modifiersField = Field.class.getDeclaredField("modifiers");
+			modifiersField.setAccessible(true);
+			modifiersField.setInt(dbl, dbl.getModifiers() &~Modifier.FINAL);
+			dbl.setInt(null, 1024*1024);
+			System.out.println(dbl.getInt(null));
+		} catch (SecurityException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchFieldException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalArgumentException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	protected Index index;
 	protected SpatialClusters<?> cluster;
-	private HardAssigner<?, ?, ?> hardAssigner;
+	private Assigner<?> hardAssigner;
+	private PrintModeOption pm;
+	private boolean exactAassigner;
 
-	public BasicSearcher(BasicSearcherOptions options) {
+
+	public BasicSearcher(SEARCH_OPTIONS options) {
+		this.pm = options.mode;
+		this.exactAassigner = options.exactAssigner;
+		initIndexInput(options);
+		prepareQuantiser(options);
+	}
+
+	public void loadCompletely() {
+		while(this.hardAssigner == null || !isIndexLoadComplete()){
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+			}
+		}
+		if(this.hardAssigner == null || !isIndexLoadComplete()) throw new RuntimeException("Failed to load!");
+	}
+
+	public boolean isIndexLoadComplete() {
+		return true;
+	}
+
+	public void initIndexInput(SEARCH_OPTIONS options) {
 		final File filename = options.getIndex();
 		final String filenameStr = filename.getAbsolutePath();
 		index = Index.createIndex(filenameStr, "index");
-
-		getClusters(); // preload the quantizer
 	}
 
-	public <T extends QuantisedLocalFeature<?>> ResultSet search(QLFDocument<T> query, BasicSearcherOptions options) {
+	public <T extends QuantisedLocalFeature<?>> List<DocidScore> search(QLFDocument<T> query, BasicSearcherOptions options) {
+		return search(query,options,index);
+	}
+	public <T extends QuantisedLocalFeature<?>> List<DocidScore> search(QLFDocument<T> query, BasicSearcherOptions options, Index index) {
 		final QLFDocumentQuery<T> q = new QLFDocumentQuery<T>(query);
 
 		final Manager manager = new Manager(index);
@@ -117,11 +166,20 @@ public class BasicSearcher {
 		manager.runMatching(request);
 		manager.runPostProcessing(request);
 		manager.runPostFilters(request);
-
-		return request.getResultSet();
+		ResultSet rs = request.getResultSet();
+		int[] docids = rs.getDocids();
+		double[] scores = rs.getScores();
+		List<DocidScore> ret = new ArrayList<DocidScore>();
+		for (int i = 0; i < docids.length; i++) {
+			DocidScore e = new DocidScore(docids[i],scores[i]);
+			e.index = index;
+			ret.add(e);
+		}
+		return ret;
 	}
 
-	public String getDocumentId(int docno) {
+
+	public String getDocumentId(Index index, int docno) {
 		try {
 			return index.getMetaIndex().getItem("docno", docno);
 		} catch (final IOException e) {
@@ -130,47 +188,47 @@ public class BasicSearcher {
 		}
 	}
 
-	public String getPath(int docid) throws IOException {
+	public String getPath(Index index, int docid) throws IOException {
 		return index.getMetaIndex().getItem("path", docid).replace(".fv.loc", "");
 	}
 
-	public File getFile(int docid) throws IOException {
-		return new File(index.getIndexProperty("index.image.base.path", "/")
-				+ index.getMetaIndex().getItem("path", docid).replace(".fv.loc", ""));
+	public File getFile(Index index, int docid) throws IOException {
+		String docIdPath = getDocidPath(index,docid);
+		return new File(index.getIndexProperty("index.image.base.path", "/") + docIdPath.replace(".fv.loc", ""));
 	}
 
-	public SpatialClusters<?> getClusters() {
-		if (cluster == null) {
-			cluster = ((QuantiserIndex) index.getIndexStructure("featureQuantiser")).getQuantiser();
-		}
-		return cluster;
+	private String getDocidPath(Index index, int docid) throws IOException {
+		String item = index.getMetaIndex().getItem("path", docid);
+		return item;
 	}
 
-	@SuppressWarnings("unchecked")
-	public Assigner<?> getQuantizer(int softNeighbours) {
-		if (softNeighbours > 0) {
-			final SpatialClusters<?> clusters = getClusters();
-
-			if (clusters.getClass().getName().contains("Byte")) {
-				return new ByteKNNAssigner((CentroidsProvider<byte[]>) clusters, false, softNeighbours);
-			} else {
-				return new IntKNNAssigner((CentroidsProvider<int[]>) clusters, false, softNeighbours);
+	public void prepareQuantiser(BasicSearcherOptions options) {
+		AssignerLoader loader = new AssignerLoader(options.getQuantiser(), options.getSoftQuantNeighbours(), options.exactAssigner);
+		loader.addLoadListener(new AssignerLoadListener() {
+			@Override
+			public void loadComplete(Assigner<?> assigner) {
+				BasicSearcher.this.hardAssigner = assigner;
 			}
-		} else {
-			if (hardAssigner == null) {
-				hardAssigner = getClusters().defaultHardAssigner();
-			}
-			return hardAssigner;
-		}
+		});
+		new Thread(loader).start();
+	}
+	public List<DocidScore> search(File imageFile, int[] coords, BasicSearcherOptions options) throws Exception {
+		String featureType = getFeatureType();
+		return search(imageFile,coords,options,featureType);
 	}
 
-	public ResultSet search(File imageFile, int[] coords, BasicSearcherOptions options) throws Exception {
-		final Assigner<?> quantizer = getQuantizer(options.getSoftQuantNeighbours());
+	public String getFeatureType() {
+		return index.getIndexProperty("index.feature.type", "");
+	}
+	public List<DocidScore> search(File imageFile, int[] coords, BasicSearcherOptions options, String featureType) throws Exception {
+//		final Assigner<?> quantizer = getQuantizer(options.getSoftQuantNeighbours());
+		Assigner<?> quantizer = hardAssigner;
 
 		final long t1 = System.currentTimeMillis();
 
+
 		// process the image
-		final LocalFeatureMode mode = LocalFeatureMode.valueOf(index.getIndexProperty("index.feature.type", ""));
+		final LocalFeatureMode mode = LocalFeatureMode.valueOf(featureType);
 		final LocalFeatureList<?> features = FeatureTask.computeFeatures(imageFile, mode.getOptions());
 
 		LocalFeatureList<QuantisedLocalFeature<?>> qfeatures;
@@ -189,7 +247,7 @@ public class BasicSearcher {
 
 		final long t2 = System.currentTimeMillis();
 
-		final ResultSet rs = search(d, options);
+		List<DocidScore> ret = search(d, options);
 
 		final long t3 = System.currentTimeMillis();
 
@@ -198,32 +256,34 @@ public class BasicSearcher {
 			System.out.println("[INFO] Search took:				" + ((t3 - t2) / 1000.0) + " secs");
 		}
 
-		return rs;
+
+
+		return ret;
 	}
 
-	public void printResultSet(ResultSet rs, int limit) throws IOException {
+	public void printResultSet(List<DocidScore> rs, int limit) throws IOException {
 		if (limit <= 0)
-			limit = rs.getDocids().length;
+			limit = rs.size();
 
-		for (int i = 0; i < limit; i++) {
-			final File file = getFile(rs.getDocids()[i]);
+		for (DocidScore didScore: rs) {
+			final String namedDoc = this.pm.docidToString(didScore.index,didScore.first);
 
-			if (rs.getScores()[i] <= 0)
+			if (didScore.second <= 0)
 				break; // filter 0 results
 
-			System.out.format("%s\t%f\n", file, rs.getScores()[i]);
+			System.out.format("%s\t%f\n", namedDoc, didScore.second);
 		}
 	}
 
-	public void displayResults(String title, ResultSet rs, int limit) throws IOException {
+	public void displayResults(String title, List<DocidScore> rs, int limit) throws IOException {
 		if (limit <= 0)
-			limit = rs.getDocids().length;
+			limit = rs.size();
 		final List<File> files = new ArrayList<File>();
 
-		for (int i = 0; i < limit; i++) {
-			final File file = getFile(rs.getDocids()[i]);
+		for (DocidScore didScore: rs) {
+			final File file = getFile(didScore.index,didScore.first);
 
-			if (rs.getScores()[i] <= 0)
+			if (didScore.second <= 0)
 				break; // filter 0 results
 
 			files.add(file);
@@ -269,7 +329,8 @@ public class BasicSearcher {
 			return;
 		}
 
-		BasicSearcher searcher = new BasicSearcher(options);
+		BasicSearcher<BasicSearcherOptions> searcher = new BasicSearcher<BasicSearcherOptions>(options);
+		searcher.loadCompletely();
 
 		if (!options.isInteractive() && !options.isServer()) {
 			if (options.getQueryImage() == null) {
@@ -282,7 +343,7 @@ public class BasicSearcher {
 			if (options.getQueryImage().isDirectory()) {
 				for (final File f : options.getQueryImage().listFiles()) {
 					try {
-						final ResultSet rs = searcher.search(f, options.getRoiCoords(), options);
+						final List<DocidScore> rs = searcher.search(f, options.getRoiCoords(), options);
 						System.out.println("Results from querying with: " + f.getName());
 						searcher.printResultSet(rs, options.getLimit());
 					} catch (final Exception e) {
@@ -293,7 +354,7 @@ public class BasicSearcher {
 				if (options.displayQuery())
 					searcher.displayImage("Query:  " + options.getQueryImage(), options.getQueryImage());
 
-				final ResultSet rs = searcher.search(options.getQueryImage(), options.getRoiCoords(), options);
+				final List<DocidScore> rs = searcher.search(options.getQueryImage(), options.getRoiCoords(), options);
 				searcher.printResultSet(rs, options.getLimit());
 
 				if (options.displayResults())
@@ -345,7 +406,7 @@ public class BasicSearcher {
 
 					if (!interactiveOptions.getIndex().equals(options.getIndex())) {
 						// reload index
-						searcher = new BasicSearcher(interactiveOptions);
+						searcher = new BasicSearcher<BasicSearcherOptions>(interactiveOptions);
 						options = interactiveOptions;
 					}
 
@@ -374,7 +435,7 @@ public class BasicSearcher {
 						searcher.displayImage("Query:  " + interactiveOptions.getQueryImage(),
 								interactiveOptions.getQueryImage());
 
-					final ResultSet rs = searcher.search(interactiveOptions.getQueryImage(),
+					final List<DocidScore> rs = searcher.search(interactiveOptions.getQueryImage(),
 							interactiveOptions.getRoiCoords(), interactiveOptions);
 					searcher.printResultSet(rs, limit);
 
