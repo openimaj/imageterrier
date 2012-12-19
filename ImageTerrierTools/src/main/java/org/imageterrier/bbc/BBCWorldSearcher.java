@@ -25,7 +25,7 @@ public class BBCWorldSearcher {
 	private LocalFeatureMode mode;
 	private MultiIndexSearcherOptions opts;
 	private MultiIndexSearcher searcher;
-	final static String BASE_DIR = "/Volumes/BBC World Search/worldsearch/indexes";
+	final static String BASE_DIR = "/Volumes/BBC World Search/worldsearch/indexes_720_0.00_max_5000000";
 //	final static String BASE_DIR = "/Users/ss/Experiments/bbc/selectiveIndexCreation/testIndecies";
 
 	public BBCWorldSearcher() {
@@ -51,7 +51,16 @@ public class BBCWorldSearcher {
 			}
 
 		});
-		return Arrays.asList(indexFiles).subList(0, 5);
+		return Arrays.asList(indexFiles);
+//		return Arrays.asList(
+//			new File("/Volumes/BBC World Search/worldsearch/indexes_merged/odd/index_merged_0_205/")
+//			new File("/Volumes/BBC World Search/worldsearch/indexes_merged/index_0_112_161_165_combination")
+//			new File("/Volumes/BBC World Search/worldsearch/indexes/index_0_112_combination"),
+//			new File("/Volumes/BBC World Search/worldsearch/indexes/index_115_115_combination"),
+//			new File("/Volumes/BBC World Search/worldsearch/indexes/index_122_123_combination"),
+//			new File("/Volumes/BBC World Search/worldsearch/indexes/index_129_137_combination"),
+//			new File("/Volumes/BBC World Search/worldsearch/indexes/index_161_165_combination")
+//		);
 	}
 
 
@@ -59,6 +68,9 @@ public class BBCWorldSearcher {
 	public static void main(String[] args) throws Exception {
 		BBCWorldSearcher searcher = new BBCWorldSearcher();
 		searcher.search(new File("/Users/ss/Desktop/imgres.jpeg"));
+		searcher.search(new File("/Users/ss/Desktop/oh-the-huge-manatee1.jpg"));
+		searcher.search(new File("/Users/ss/Desktop/imgres.jpeg"));
+
 	}
 
 	public void search(File imageFile) throws Exception {
