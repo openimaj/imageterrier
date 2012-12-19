@@ -62,11 +62,16 @@ public class MultiIndexSearcher extends BasicSearcher<MultiIndexSearcherOptions>
 			@Override
 			public void perform(Index index) {
 				System.out.println("Searching with index: " + new File(index.getPath()).getName());
-				List<DocidScore> rs = search(query, options, index);
+				List<DocidScore> rs = search(cloneQuery(query), options, index);
 				finalRS.addAll(rs);
 			}
 		}, (ThreadPoolExecutor)Executors.newFixedThreadPool(8,new GlobalExecutorPool.DaemonThreadFactory()));
 		return finalRS;
+	}
+
+	private static <T extends QuantisedLocalFeature<?>> QLFDocument<T> cloneQuery(QLFDocument<T> query){
+		QLFDocument<T> retQ = new QLFDocument<T>(query.getEntries(),query.getProperty("docno"),query.getAllProperties());
+		return retQ;
 	}
 
 	@Override
