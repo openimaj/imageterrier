@@ -35,6 +35,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -51,6 +52,7 @@ import org.openimaj.knn.CoordinateKDTree;
 import org.openimaj.math.geometry.point.Point2dImpl;
 import org.openimaj.math.geometry.shape.Rectangle;
 import org.terrier.indexing.Document;
+
 
 
 /**
@@ -70,6 +72,16 @@ public class QLFDocument<F extends QuantisedLocalFeature<?>> implements Document
 	protected String termSuffix = "";
 	protected F current = null;
 	
+	public QLFDocument<F> clone() {
+		ArrayList<F> newFeatures = new ArrayList<F>(this.featureList.size());
+		for (F f : this.featureList) {
+			newFeatures.add(f);
+		}
+		String docno = props.get("docno");
+		QLFDocument<F> ret = new QLFDocument<F>(newFeatures, docno, props);
+		return ret ;
+		
+	}
 	/**
 	 * Construct a new QLFDocument instance from the contents of the given file.
 	 * The file contents must be compatible with {@link FileLocalFeatureList}.

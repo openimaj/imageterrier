@@ -1,9 +1,11 @@
 package org.imageterrier.tools.multi;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -23,6 +25,11 @@ import org.openimaj.feature.local.quantised.QuantisedLocalFeature;
 import org.openimaj.util.parallel.GlobalExecutorPool;
 import org.openimaj.util.parallel.Operation;
 import org.openimaj.util.parallel.Parallel;
+import org.terrier.matching.models.WeightingModel;
+import org.terrier.matching.models.WeightingModelFactory;
+import org.terrier.querying.Manager;
+import org.terrier.querying.SearchRequest;
+import org.terrier.structures.DocumentIndex;
 import org.terrier.structures.Index;
 
 
@@ -54,24 +61,41 @@ public class MultiIndexSearcher extends BasicSearcher<MultiIndexSearcherOptions>
 		return this.indexes != null;
 	}
 
+	
 	@Override
 	public <T extends QuantisedLocalFeature<?>> List<DocidScore> search(final QLFDocument<T> query, final BasicSearcherOptions options){
 		final List<DocidScore> finalRS = Collections.synchronizedList( new ArrayList<DocidScore>());
+		
+		prepareWeightingCache();
 //		for (Index index : indexes) {
 		Parallel.forEach(indexes, new Operation<Index>() {
 			@Override
 			public void perform(Index index) {
 				System.out.println("Searching with index: " + new File(index.getPath()).getName());
-				List<DocidScore> rs = search(cloneQuery(query), options, index);
+				List<DocidScore> rs = search(query.clone(), options, index);
 				finalRS.addAll(rs);
 			}
 		}, (ThreadPoolExecutor)Executors.newFixedThreadPool(8,new GlobalExecutorPool.DaemonThreadFactory()));
 		return finalRS;
 	}
-
-	private static <T extends QuantisedLocalFeature<?>> QLFDocument<T> cloneQuery(QLFDocument<T> query){
-		QLFDocument<T> retQ = new QLFDocument<T>(query.getEntries(),query.getProperty("docno"),query.getAllProperties());
-		return retQ;
+	
+	@SuppressWarnings("unchecked")
+	private void prepareWeightingCache() {
+		try {
+			Map<Index, Map<String, WeightingModel>> cacheInstance = null;
+			Field cacheField = WeightingModelFactory.class.getDeclaredField("cache");
+			cacheField.setAccessible(true);
+			while(cacheInstance==null){
+				cacheInstance = (Map<Index, Map<String, WeightingModel>>) cacheField.get(null);
+			}
+			Map<Index, Map<String, WeightingModel>> synchedCacheInstance = Collections.synchronizedMap(cacheInstance);
+			cacheField.set(null, synchedCacheInstance);
+			System.out.println("Got it: " + synchedCacheInstance);
+			
+		} catch (Exception e) {
+			System.out.println("Something went wrong!");
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override

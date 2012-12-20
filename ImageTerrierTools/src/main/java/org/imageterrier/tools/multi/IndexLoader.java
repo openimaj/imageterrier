@@ -33,21 +33,21 @@ final class IndexLoader implements Runnable {
 			String indexName = file.getName();
 			System.out.println("Loading index: " + indexName);
 			Index index = Index.createIndex(file.getAbsolutePath(), "index");
-			InvertedIndex ii = index.getInvertedIndex();
-			for (BitInSeekable bf : ii.getBitFiles()) {
-				BitFileBuffered bff = (BitFileBuffered) bf;
-				Field dbl;
-				try {
-					dbl = BitFileBuffered.class.getDeclaredField("buffer_size");
-					dbl.setAccessible(true);
-					Field modifiersField = Field.class.getDeclaredField("modifiers");
-					modifiersField.setAccessible(true);
-					modifiersField.setInt(dbl, dbl.getModifiers() &~Modifier.FINAL);
-					dbl.setInt(bff, 1024*16);
-				} catch (Exception e) {
-				}
-
-			}
+//			InvertedIndex ii = index.getInvertedIndex();
+//			for (BitInSeekable bf : ii.getBitFiles()) {
+//				BitFileBuffered bff = (BitFileBuffered) bf;
+//				Field dbl;
+//				try {
+//					dbl = BitFileBuffered.class.getDeclaredField("buffer_size");
+//					dbl.setAccessible(true);
+//					Field modifiersField = Field.class.getDeclaredField("modifiers");
+//					modifiersField.setAccessible(true);
+//					modifiersField.setInt(dbl, dbl.getModifiers() &~Modifier.FINAL);
+//					dbl.setInt(bff, 1024*8);
+//				} catch (Exception e) {
+//				}
+//
+//			}
 			indecies.add(index);
 		}
 		System.out.println(String.format("Indexes loaded took: %fs",timer.duration()/1000f));
