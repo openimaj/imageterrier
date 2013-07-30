@@ -36,8 +36,7 @@ import java.util.concurrent.Callable;
 import org.apache.log4j.Logger;
 import org.openimaj.feature.local.list.LocalFeatureList;
 import org.openimaj.io.IOUtils;
-import org.openimaj.tools.localfeature.LocalFeatureMode.LocalFeatureModeOp;
-
+import org.openimaj.tools.localfeature.options.LocalFeatureMode.LocalFeatureModeOp;
 
 public class FeatureTask implements Callable<File> {
 	protected static Logger logger = Logger.getLogger(FeatureTask.class);
@@ -62,9 +61,10 @@ public class FeatureTask implements Callable<File> {
 	}
 
 	/**
-	 * Process image and make loc file.
-	 * Processed loc file will be created at saveLocation, 
-	 * unless one already existed alongside the image, in which case that one is returned.
+	 * Process image and make loc file. Processed loc file will be created at
+	 * saveLocation, unless one already existed alongside the image, in which
+	 * case that one is returned.
+	 * 
 	 * @param filename
 	 * @return filename
 	 * @throws Exception
@@ -75,12 +75,12 @@ public class FeatureTask implements Callable<File> {
 			return filename;
 		}
 
-		//Get the keypoints
+		// Get the keypoints
 		try {
 			logger.info("Generating keypoints for " + imageFile.getName());
-			LocalFeatureList<?> keys = mode.extract(loadImageData(imageFile));
+			final LocalFeatureList<?> keys = mode.extract(loadImageData(imageFile));
 			IOUtils.writeBinary(filename, keys);
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			System.err.println("Error processing image " + imageFile);
 			return null;
 		}
@@ -91,7 +91,7 @@ public class FeatureTask implements Callable<File> {
 	public static LocalFeatureList<?> computeFeatures(File imageFile, LocalFeatureModeOp mode) throws IOException {
 		return mode.extract(loadImageData(imageFile));
 	}
-	
+
 	protected static byte[] loadImageData(File imageFile) throws IOException {
 		if (imageFile.isDirectory())
 			throw new RuntimeException("Unsupported operation, file " + imageFile.getAbsolutePath() + " is a directory");
@@ -103,14 +103,14 @@ public class FeatureTask implements Callable<File> {
 		try {
 			in = new FileInputStream(imageFile);
 			in.read(buffer);
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			throw new RuntimeException("Exception occured on reading file " + imageFile.getAbsolutePath(), e);
 		} finally {
 			if (in != null) {
 				try {
 					in.close();
-				} catch (Exception e) {
-					throw new RuntimeException( "Exception occured on closing file"  + imageFile.getAbsolutePath(), e);
+				} catch (final Exception e) {
+					throw new RuntimeException("Exception occured on closing file" + imageFile.getAbsolutePath(), e);
 				}
 			}
 		}

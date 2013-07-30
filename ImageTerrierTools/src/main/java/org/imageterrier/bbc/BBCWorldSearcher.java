@@ -13,7 +13,7 @@ import org.imageterrier.tools.multi.MultiIndexSearcherOptions;
 import org.openimaj.ml.clustering.SpatialClusters;
 import org.openimaj.ml.clustering.assignment.Assigner;
 import org.openimaj.time.Timer;
-import org.openimaj.tools.localfeature.LocalFeatureMode;
+import org.openimaj.tools.localfeature.options.LocalFeatureMode;
 
 public class BBCWorldSearcher {
 	private static Logger logger;
@@ -26,7 +26,9 @@ public class BBCWorldSearcher {
 	private MultiIndexSearcherOptions opts;
 	private MultiIndexSearcher searcher;
 	final static String BASE_DIR = "/Volumes/BBC World Search/worldsearch/indexes_720_0.00_max_5000000";
-//	final static String BASE_DIR = "/Users/ss/Experiments/bbc/selectiveIndexCreation/testIndecies";
+
+	// final static String BASE_DIR =
+	// "/Users/ss/Experiments/bbc/selectiveIndexCreation/testIndecies";
 
 	public BBCWorldSearcher() {
 		prepare();
@@ -43,7 +45,7 @@ public class BBCWorldSearcher {
 	}
 
 	List<File> loadIndecies(String baseDir, final String match) {
-		File[] indexFiles = new File(baseDir).listFiles(new FilenameFilter() {
+		final File[] indexFiles = new File(baseDir).listFiles(new FilenameFilter() {
 
 			@Override
 			public boolean accept(File dir, String name) {
@@ -52,21 +54,26 @@ public class BBCWorldSearcher {
 
 		});
 		return Arrays.asList(indexFiles);
-//		return Arrays.asList(
-//			new File("/Volumes/BBC World Search/worldsearch/indexes_merged/odd/index_merged_0_205/")
-//			new File("/Volumes/BBC World Search/worldsearch/indexes_merged/index_0_112_161_165_combination")
-//			new File("/Volumes/BBC World Search/worldsearch/indexes/index_0_112_combination"),
-//			new File("/Volumes/BBC World Search/worldsearch/indexes/index_115_115_combination"),
-//			new File("/Volumes/BBC World Search/worldsearch/indexes/index_122_123_combination"),
-//			new File("/Volumes/BBC World Search/worldsearch/indexes/index_129_137_combination"),
-//			new File("/Volumes/BBC World Search/worldsearch/indexes/index_161_165_combination")
-//		);
+		// return Arrays.asList(
+		// new
+		// File("/Volumes/BBC World Search/worldsearch/indexes_merged/odd/index_merged_0_205/")
+		// new
+		// File("/Volumes/BBC World Search/worldsearch/indexes_merged/index_0_112_161_165_combination")
+		// new
+		// File("/Volumes/BBC World Search/worldsearch/indexes/index_0_112_combination"),
+		// new
+		// File("/Volumes/BBC World Search/worldsearch/indexes/index_115_115_combination"),
+		// new
+		// File("/Volumes/BBC World Search/worldsearch/indexes/index_122_123_combination"),
+		// new
+		// File("/Volumes/BBC World Search/worldsearch/indexes/index_129_137_combination"),
+		// new
+		// File("/Volumes/BBC World Search/worldsearch/indexes/index_161_165_combination")
+		// );
 	}
 
-
-
 	public static void main(String[] args) throws Exception {
-		BBCWorldSearcher searcher = new BBCWorldSearcher();
+		final BBCWorldSearcher searcher = new BBCWorldSearcher();
 		searcher.search(new File("/Users/ss/Desktop/imgres.jpeg"));
 		searcher.search(new File("/Users/ss/Desktop/oh-the-huge-manatee1.jpg"));
 		searcher.search(new File("/Users/ss/Desktop/imgres.jpeg"));
@@ -76,8 +83,9 @@ public class BBCWorldSearcher {
 	public void search(File imageFile) throws Exception {
 		this.opts.setQueryImageFile(imageFile);
 		System.out.println("Starting search for: " + imageFile);
-		Timer timer = Timer.timer();
+		final Timer timer = Timer.timer();
 		final List<DocidScore> rs = searcher.search(this.opts.getQueryImage(), this.opts.getRoiCoords(), opts);
-		System.out.println(String.format("Search complete! Got: %d results Took: %fs",rs.size(),timer.duration()/1000f));
+		System.out.println(String.format("Search complete! Got: %d results Took: %fs", rs.size(),
+				timer.duration() / 1000f));
 	}
 }

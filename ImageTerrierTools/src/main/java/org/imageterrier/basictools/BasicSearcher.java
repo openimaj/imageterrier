@@ -65,7 +65,7 @@ import org.openimaj.ml.clustering.SpatialClusters;
 import org.openimaj.ml.clustering.assignment.Assigner;
 import org.openimaj.ml.clustering.assignment.HardAssigner;
 import org.openimaj.ml.clustering.assignment.SoftAssigner;
-import org.openimaj.tools.localfeature.LocalFeatureMode;
+import org.openimaj.tools.localfeature.options.LocalFeatureMode;
 import org.terrier.compression.BitFileBuffered;
 import org.terrier.matching.ResultSet;
 import org.terrier.querying.Manager;

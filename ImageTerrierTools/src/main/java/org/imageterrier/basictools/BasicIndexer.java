@@ -55,7 +55,7 @@ import org.openimaj.tools.clusterquantiser.ClusterQuantiser;
 import org.openimaj.tools.clusterquantiser.ClusterQuantiserOptions;
 import org.openimaj.tools.clusterquantiser.ClusterType;
 import org.openimaj.tools.clusterquantiser.FileType;
-import org.openimaj.tools.localfeature.LocalFeatureMode;
+import org.openimaj.tools.localfeature.options.LocalFeatureMode;
 import org.terrier.indexing.Collection;
 import org.terrier.indexing.ExtensibleSinglePassIndexer;
 import org.terrier.utility.ApplicationSetup;

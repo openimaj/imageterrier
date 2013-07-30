@@ -74,10 +74,10 @@
 		</developers>
 		<issueManagement>
 			<system>Sourceforge/Allura</system>
-			<url>https://sourceforge.net/p/openimaj/tickets/</url>
+			<url>http://jira.openimaj.org</url>
 		</issueManagement>
 		<properties>
-			<openimaj.version>1.0.6-SNAPSHOT</openimaj.version>
+			<openimaj.version>1.1.1-SNAPSHOT</openimaj.version>
 		</properties>
 	<modules>
 		<module>ImageTerrier</module>

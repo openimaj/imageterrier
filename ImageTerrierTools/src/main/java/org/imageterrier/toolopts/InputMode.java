@@ -8,8 +8,8 @@ import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.ProxyOptionHandler;
 import org.openimaj.tools.clusterquantiser.ClusterType;
 import org.openimaj.tools.clusterquantiser.ClusterType.ClusterTypeOp;
-import org.openimaj.tools.localfeature.LocalFeatureMode;
-import org.openimaj.tools.localfeature.LocalFeatureMode.LocalFeatureModeOp;
+import org.openimaj.tools.localfeature.options.LocalFeatureMode;
+import org.openimaj.tools.localfeature.options.LocalFeatureMode.LocalFeatureModeOp;
 
 /**
  * Define the input for the indexer

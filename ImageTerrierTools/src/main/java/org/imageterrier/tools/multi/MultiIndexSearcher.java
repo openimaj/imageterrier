@@ -22,18 +22,14 @@ import org.imageterrier.tools.multi.IndexLoader.IndexLoadCompleteListener;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.openimaj.feature.local.quantised.QuantisedLocalFeature;
+import org.openimaj.util.function.Operation;
 import org.openimaj.util.parallel.GlobalExecutorPool;
-import org.openimaj.util.parallel.Operation;
 import org.openimaj.util.parallel.Parallel;
 import org.terrier.matching.models.WeightingModel;
 import org.terrier.matching.models.WeightingModelFactory;
-import org.terrier.querying.Manager;
-import org.terrier.querying.SearchRequest;
-import org.terrier.structures.DocumentIndex;
 import org.terrier.structures.Index;
 
-
-public class MultiIndexSearcher extends BasicSearcher<MultiIndexSearcherOptions>{
+public class MultiIndexSearcher extends BasicSearcher<MultiIndexSearcherOptions> {
 
 	private List<Index> indexes;
 	private IndexLoader indexLoader;
@@ -45,7 +41,7 @@ public class MultiIndexSearcher extends BasicSearcher<MultiIndexSearcherOptions>
 	@Override
 	public void initIndexInput(MultiIndexSearcherOptions options) {
 		this.indexLoader = new IndexLoader(options.index);
-		this.indexLoader.addLoadCompleteListener(new IndexLoadCompleteListener(){
+		this.indexLoader.addLoadCompleteListener(new IndexLoadCompleteListener() {
 
 			@Override
 			public void indexesLoaded(List<Index> indexes) {
@@ -61,38 +57,40 @@ public class MultiIndexSearcher extends BasicSearcher<MultiIndexSearcherOptions>
 		return this.indexes != null;
 	}
 
-	
 	@Override
-	public <T extends QuantisedLocalFeature<?>> List<DocidScore> search(final QLFDocument<T> query, final BasicSearcherOptions options){
-		final List<DocidScore> finalRS = Collections.synchronizedList( new ArrayList<DocidScore>());
-		
+	public <T extends QuantisedLocalFeature<?>> List<DocidScore> search(final QLFDocument<T> query,
+			final BasicSearcherOptions options)
+	{
+		final List<DocidScore> finalRS = Collections.synchronizedList(new ArrayList<DocidScore>());
+
 		prepareWeightingCache();
-//		for (Index index : indexes) {
+		// for (Index index : indexes) {
 		Parallel.forEach(indexes, new Operation<Index>() {
 			@Override
 			public void perform(Index index) {
 				System.out.println("Searching with index: " + new File(index.getPath()).getName());
-				List<DocidScore> rs = search(query.clone(), options, index);
+				final List<DocidScore> rs = search(query.clone(), options, index);
 				finalRS.addAll(rs);
 			}
-		}, (ThreadPoolExecutor)Executors.newFixedThreadPool(8,new GlobalExecutorPool.DaemonThreadFactory()));
+		}, (ThreadPoolExecutor) Executors.newFixedThreadPool(8, new GlobalExecutorPool.DaemonThreadFactory()));
 		return finalRS;
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	private void prepareWeightingCache() {
 		try {
 			Map<Index, Map<String, WeightingModel>> cacheInstance = null;
-			Field cacheField = WeightingModelFactory.class.getDeclaredField("cache");
+			final Field cacheField = WeightingModelFactory.class.getDeclaredField("cache");
 			cacheField.setAccessible(true);
-			while(cacheInstance==null){
+			while (cacheInstance == null) {
 				cacheInstance = (Map<Index, Map<String, WeightingModel>>) cacheField.get(null);
 			}
-			Map<Index, Map<String, WeightingModel>> synchedCacheInstance = Collections.synchronizedMap(cacheInstance);
+			final Map<Index, Map<String, WeightingModel>> synchedCacheInstance = Collections
+					.synchronizedMap(cacheInstance);
 			cacheField.set(null, synchedCacheInstance);
 			System.out.println("Got it: " + synchedCacheInstance);
-			
-		} catch (Exception e) {
+
+		} catch (final Exception e) {
 			System.out.println("Something went wrong!");
 			throw new RuntimeException(e);
 		}
@@ -152,22 +150,25 @@ public class MultiIndexSearcher extends BasicSearcher<MultiIndexSearcherOptions>
 					searcher.displayResults("Results:  " + options.getQueryImage(), rs, options.getLimit());
 			}
 		}
-//		else if (options.isServer()) {
-//			BasicSearcherXmlRpcServlet.options = options;
-//			BasicSearcherXmlRpcServlet.searcher = searcher;
-//			final XmlRpcServlet servlet = new XmlRpcServlet() {
-//				private static final long serialVersionUID = 1L;
-//
-//				@Override
-//				protected XmlRpcHandlerMapping newXmlRpcHandlerMapping() throws XmlRpcException {
-//					final PropertyHandlerMapping mapping = (PropertyHandlerMapping) super.newXmlRpcHandlerMapping();
-//					XmlRpcSystemImpl.addSystemHandler(mapping);
-//					return mapping;
-//				}
-//			};
-//			final ServletWebServer webServer = new ServletWebServer(servlet, options.serverPort());
-//			webServer.start();
-//		}
+		// else if (options.isServer()) {
+		// BasicSearcherXmlRpcServlet.options = options;
+		// BasicSearcherXmlRpcServlet.searcher = searcher;
+		// final XmlRpcServlet servlet = new XmlRpcServlet() {
+		// private static final long serialVersionUID = 1L;
+		//
+		// @Override
+		// protected XmlRpcHandlerMapping newXmlRpcHandlerMapping() throws
+		// XmlRpcException {
+		// final PropertyHandlerMapping mapping = (PropertyHandlerMapping)
+		// super.newXmlRpcHandlerMapping();
+		// XmlRpcSystemImpl.addSystemHandler(mapping);
+		// return mapping;
+		// }
+		// };
+		// final ServletWebServer webServer = new ServletWebServer(servlet,
+		// options.serverPort());
+		// webServer.start();
+		// }
 		else {
 			// interactive mode -- useful for debugging
 			// Note to self: jline is awesome!
@@ -186,7 +187,7 @@ public class MultiIndexSearcher extends BasicSearcher<MultiIndexSearcherOptions>
 
 				if (!cmd.contains("-il"))
 				{
-					for (File f : options.index) {
+					for (final File f : options.index) {
 						cmd += " -il " + f;
 					}
 				}
@@ -237,7 +238,7 @@ public class MultiIndexSearcher extends BasicSearcher<MultiIndexSearcherOptions>
 							interactiveOptions.getQueryImage(),
 							interactiveOptions.getRoiCoords(),
 							interactiveOptions
-					);
+							);
 					searcher.printResultSet(rs, limit);
 
 					if (interactiveOptions.displayResults())
@@ -251,7 +252,5 @@ public class MultiIndexSearcher extends BasicSearcher<MultiIndexSearcherOptions>
 			}
 		}
 	}
-
-
 
 }
