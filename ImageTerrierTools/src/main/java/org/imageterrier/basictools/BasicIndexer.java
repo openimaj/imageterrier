@@ -1,4 +1,4 @@
-/**
+/** 
  * ImageTerrier - The Terabyte Retriever for Images
  * Webpage: http://www.imageterrier.org/
  * Contact: jsh2@ecs.soton.ac.uk
