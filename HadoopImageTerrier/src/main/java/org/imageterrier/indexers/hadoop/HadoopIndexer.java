@@ -82,12 +82,13 @@ import org.terrier.utility.Files;
 
 /**
  * @author Jonathon Hare
- *
+ * 
  */
 public class HadoopIndexer extends AbstractHadoopIndexer {
 	static {
 		// initialise terrier
 		BasicTerrierConfig.configure();
+		ApplicationSetup.setProperty("indexer.meta.forward.keylens", "200");
 	}
 	protected static final Logger logger = Logger.getLogger(HadoopIndexer.class);
 
@@ -527,7 +528,7 @@ public class HadoopIndexer extends AbstractHadoopIndexer {
 
 	/**
 	 * Process the arguments and start the map-reduce indexing.
-	 *
+	 * 
 	 * @param args
 	 * @throws Exception
 	 */

@@ -16,12 +16,13 @@ grails.project.dependency.resolution = {
 
         mavenLocal()
         mavenCentral()
-        mavenRepo "http://octopussy.ecs.soton.ac.uk/m2/releases/"
+        mavenRepo "http://snapshots.openimaj.org/"
+        mavenRepo "http://maven.openimaj.org/"
     }
     dependencies {
         // specify dependencies here under either 'build', 'compile', 'runtime', 'test' or 'provided' scopes eg.
 
-        runtime('org.imageterrier:ImageTerrierTools:3.0.1') {
+        runtime('org.imageterrier:ImageTerrierTools:3.5-SNAPSHOT') {
             excludes "xml-apis", "commons-logging"
         }
     }

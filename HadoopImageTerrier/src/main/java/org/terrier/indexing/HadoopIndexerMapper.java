@@ -158,7 +158,8 @@ public abstract class HadoopIndexerMapper<VALUEIN>
 	protected MetaIndexBuilder createMetaIndexBuilder() {
 		final String[] forwardMetaKeys = ApplicationSetup.getProperty("indexer.meta.forward.keys", "docno").split(
 				"\\s*,\\s*");
-		final int[] metaKeyLengths = Indexer.parseInts(ApplicationSetup.getProperty("indexer.meta.forward.keylens", "20")
+		final int[] metaKeyLengths = Indexer.parseInts(ApplicationSetup
+				.getProperty("indexer.meta.forward.keylens", "20")
 				.split("\\s*,\\s*"));
 		// no reverse metadata during main indexing, pick up as separate job
 		// later
