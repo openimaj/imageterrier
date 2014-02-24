@@ -5,7 +5,7 @@
 	<parent>
 		<artifactId>imageterrier-master</artifactId>
 		<groupId>org.imageterrier</groupId>
-		<version>3.5-SNAPSHOT</version>
+		<version>3.6-SNAPSHOT</version>
 		<relativePath>..</relativePath>
 	</parent>
 	<groupId>org.imageterrier</groupId>

@@ -192,6 +192,8 @@ public class BasicIndexer {
 
 			cqopts.setInputFiles(files);
 			cqopts.setClusterTypeOp(options.getQuantiserType());
+			cqopts.setSamples(options.getQuantiserSamples());
+
 			final FileType ft = options.featureTypeOp.getMode() == LocalFeatureMode.ASIFTENRICHED ? FileType.ASIFTENRICHED_BINARY
 					: FileType.BINARY_KEYPOINT;
 			cqopts.setFileType(ft);

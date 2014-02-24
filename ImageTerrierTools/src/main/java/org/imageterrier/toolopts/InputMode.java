@@ -127,9 +127,16 @@ public enum InputMode implements CmdLineOptionsProvider {
 	public static class ImagesModeOptions extends InputModeOptions {
 		@Option(name = "--force-regeneration", aliases = "-f", usage = "force visterm regeneration")
 		private boolean forceRegeneration = false;
+		
+		@Option(name = "--quantiser-samples", aliases = "-s", usage = "number of quantiser samples", required=false)
+		private int quantSamples = -1;
 
 		public boolean forceRegeneration() {
 			return forceRegeneration;
+		}
+
+		public int getQuantiserSamples() {
+			return quantSamples;
 		}
 	}
 }
