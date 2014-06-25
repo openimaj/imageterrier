@@ -31,28 +31,26 @@ package org.imageterrier.dsms;
 import org.imageterrier.basictools.ApplicationSetupUtils;
 import org.openimaj.math.geometry.point.Point2d;
 import org.openimaj.math.geometry.transforms.FundamentalModel;
-import org.openimaj.math.model.Model;
+import org.openimaj.math.model.EstimatableModel;
 import org.terrier.matching.dsms.DocumentScoreModifier;
 
-
 /**
- * A score modifier that can be applied to a position index
- * with x and y coordinates, and works by fitting a 
- * {@link FundamentalModel} to the matching visual term pairs.  
+ * A score modifier that can be applied to a position index with x and y
+ * coordinates, and works by fitting a {@link FundamentalModel} to the matching
+ * visual term pairs.
  * 
- * If a fundamental matrix that fits the point pairs is found the 
- * document score is set to the number of inliers, otherwise
- * the score is zero.
+ * If a fundamental matrix that fits the point pairs is found the document score
+ * is set to the number of inliers, otherwise the score is zero.
  * 
  * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
  */
 public class FundamentalScoreModifier extends AbstractRANSACGeomModifier implements DocumentScoreModifier {
-	/** 
+	/**
 	 * The distance in pixels that points are allowed to move from their
 	 * predicted position and still be considered a match.
 	 */
 	public static final String MODEL_TOLERANCE = "FundamentalScoreModifier.model_tolerance";
-	
+
 	@Override
 	public String getName() {
 		return "FundamentalScoreModifier";
@@ -60,13 +58,17 @@ public class FundamentalScoreModifier extends AbstractRANSACGeomModifier impleme
 
 	@Override
 	public FundamentalScoreModifier clone() {
-		//new one, as we don't have state
+		// new one, as we don't have state
 		return new FundamentalScoreModifier();
 	}
 
 	@Override
-	public Model<Point2d, Point2d> makeModel() {
-		float tol = ApplicationSetupUtils.getProperty(MODEL_TOLERANCE, 0.1f);
-		return new FundamentalModel(new FundamentalModel.SampsonGeometricErrorCondition(tol));
+	public EstimatableModel<Point2d, Point2d> makeModel() {
+		return new FundamentalModel(new FundamentalModel.SampsonGeometricErrorCondition(getTolerance()));
+	}
+
+	@Override
+	protected double getTolerance() {
+		return ApplicationSetupUtils.getProperty(MODEL_TOLERANCE, 0.1f);
 	}
 }

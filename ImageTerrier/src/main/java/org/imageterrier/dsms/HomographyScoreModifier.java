@@ -31,28 +31,26 @@ package org.imageterrier.dsms;
 import org.imageterrier.basictools.ApplicationSetupUtils;
 import org.openimaj.math.geometry.point.Point2d;
 import org.openimaj.math.geometry.transforms.HomographyModel;
-import org.openimaj.math.model.Model;
+import org.openimaj.math.model.EstimatableModel;
 import org.terrier.matching.dsms.DocumentScoreModifier;
 
-
 /**
- * A score modifier that can be applied to a position index
- * with x and y coordinates, and works by fitting a 
- * {@link HomographyModel} to the matching visual term pairs.  
+ * A score modifier that can be applied to a position index with x and y
+ * coordinates, and works by fitting a {@link HomographyModel} to the matching
+ * visual term pairs.
  * 
- * If a homography that fits the point pairs is found the 
- * document score is set to the number of inliers, otherwise
- * the score is zero.
+ * If a homography that fits the point pairs is found the document score is set
+ * to the number of inliers, otherwise the score is zero.
  * 
  * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
  */
 public class HomographyScoreModifier extends AbstractRANSACGeomModifier implements DocumentScoreModifier {
-	/** 
+	/**
 	 * The distance in pixels that points are allowed to move from their
 	 * predicted position and still be considered a match.
 	 */
 	public static final String MODEL_TOLERANCE = "HomographyScoreModifier.model_tolerance";
-	
+
 	@Override
 	public String getName() {
 		return "HomographyScoreModifier";
@@ -60,13 +58,17 @@ public class HomographyScoreModifier extends AbstractRANSACGeomModifier implemen
 
 	@Override
 	public HomographyScoreModifier clone() {
-		//new one, as we don't have state
+		// new one, as we don't have state
 		return new HomographyScoreModifier();
 	}
 
 	@Override
-	public Model<Point2d, Point2d> makeModel() {
-		float tol = ApplicationSetupUtils.getProperty(MODEL_TOLERANCE, 10.0f);
-		return new HomographyModel(tol);
+	public EstimatableModel<Point2d, Point2d> makeModel() {
+		return new HomographyModel();
+	}
+
+	@Override
+	protected double getTolerance() {
+		return ApplicationSetupUtils.getProperty(MODEL_TOLERANCE, 10.0f);
 	}
 }

@@ -31,22 +31,21 @@ package org.imageterrier.dsms;
 import org.imageterrier.basictools.ApplicationSetupUtils;
 import org.openimaj.math.geometry.point.Point2d;
 import org.openimaj.math.geometry.transforms.AffineTransformModel;
-import org.openimaj.math.model.Model;
+import org.openimaj.math.model.EstimatableModel;
 import org.terrier.matching.dsms.DocumentScoreModifier;
 
 /**
- * A score modifier that can be applied to a position index
- * with x and y coordinates, and works by fitting a 
- * {@link AffineTransformModel} to the matching visual term pairs.  
+ * A score modifier that can be applied to a position index with x and y
+ * coordinates, and works by fitting a {@link AffineTransformModel} to the
+ * matching visual term pairs.
  * 
- * If a transform that fits the point pairs is found the 
- * document score is set to the number of inliers, otherwise
- * the score is zero.
+ * If a transform that fits the point pairs is found the document score is set
+ * to the number of inliers, otherwise the score is zero.
  * 
  * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
  */
 public class AffineScoreModifier extends AbstractRANSACGeomModifier implements DocumentScoreModifier {
-	/** 
+	/**
 	 * The distance in pixels that points are allowed to move from their
 	 * predicted position and still be considered a match.
 	 */
@@ -56,16 +55,20 @@ public class AffineScoreModifier extends AbstractRANSACGeomModifier implements D
 	public String getName() {
 		return "AffineScoreModifier";
 	}
-	
+
 	@Override
 	public AffineScoreModifier clone() {
-		//new one, as we don't have state
+		// new one, as we don't have state
 		return new AffineScoreModifier();
 	}
 
 	@Override
-	public Model<Point2d, Point2d> makeModel() {
-		float tol = ApplicationSetupUtils.getProperty(MODEL_TOLERANCE, 10.0f);
-		return new AffineTransformModel(tol);
+	public EstimatableModel<Point2d, Point2d> makeModel() {
+		return new AffineTransformModel();
+	}
+
+	@Override
+	protected double getTolerance() {
+		return ApplicationSetupUtils.getProperty(MODEL_TOLERANCE, 10.0f);
 	}
 }

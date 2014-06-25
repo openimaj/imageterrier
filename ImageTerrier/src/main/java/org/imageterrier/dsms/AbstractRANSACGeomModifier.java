@@ -41,7 +41,8 @@ import org.imageterrier.querying.parser.QLFDocumentQuery;
 import org.imageterrier.structures.PositionInvertedIndex;
 import org.openimaj.math.geometry.point.Point2d;
 import org.openimaj.math.geometry.point.Point2dImpl;
-import org.openimaj.math.model.Model;
+import org.openimaj.math.geometry.transforms.error.TransformError2d;
+import org.openimaj.math.model.EstimatableModel;
 import org.openimaj.math.model.fit.RANSAC;
 import org.openimaj.util.pair.Pair;
 import org.terrier.matching.MatchingQueryTerms;
@@ -53,19 +54,16 @@ import org.terrier.structures.Lexicon;
 import org.terrier.structures.LexiconEntry;
 import org.terrier.utility.ApplicationSetup;
 
-
 /**
- * Abstract base class for {@link DocumentScoreModifier}s that
- * use RANSAC to fit a geometric model to matching pairs
- * of visual terms. 
+ * Abstract base class for {@link DocumentScoreModifier}s that use RANSAC to fit
+ * a geometric model to matching pairs of visual terms.
  * 
- * Use of this class (or subclasses) requires that you are 
- * using a {@link PositionInvertedIndex} with a {@link PositionSpec}
- * that has encoded spatial (x and y) coordinates for each 
- * term posting.
+ * Use of this class (or subclasses) requires that you are using a
+ * {@link PositionInvertedIndex} with a {@link PositionSpec} that has encoded
+ * spatial (x and y) coordinates for each term posting.
  * 
  * @author Jonathon Hare <jsh2@ecs.soton.ac.uk>
- *
+ * 
  */
 public abstract class AbstractRANSACGeomModifier implements DocumentScoreModifier {
 	public enum ScoringScheme {
@@ -90,86 +88,90 @@ public abstract class AbstractRANSACGeomModifier implements DocumentScoreModifie
 		MULTIPLY_PERCENTAGE_MATCHES {
 			@Override
 			public double score(double originalScore, boolean didMatch, int nInliers, int nOutliers) {
-				return (didMatch ? (double)nInliers/(double)(nInliers+nOutliers) : 0.0) * originalScore;
+				return (didMatch ? (double) nInliers / (double) (nInliers + nOutliers) : 0.0) * originalScore;
 			}
 		},
-		PERCENTAGE_MATCHES  {
+		PERCENTAGE_MATCHES {
 			@Override
 			public double score(double originalScore, boolean didMatch, int nInliers, int nOutliers) {
-				return (didMatch ? (double)nInliers/(double)(nInliers+nOutliers) : 0.0);
+				return (didMatch ? (double) nInliers / (double) (nInliers + nOutliers) : 0.0);
 			}
-		}
-		;
-		
+		};
+
 		public abstract double score(double originalScore, boolean didMatch, int nInliers, int nOutliers);
 	}
-	
+
 	/** The number of documents to apply re-ranking to */
 	public static final String N_DOCS_TO_RERANK = "GeomScoreModifier.num_docs_rerank";
-	
-	/** A threshold for removing matching pairs where one of the terms matches many terms */
+
+	/**
+	 * A threshold for removing matching pairs where one of the terms matches
+	 * many terms
+	 */
 	public static final String FILTERING_THRESHOLD = "GeomScoreModifier.filter_thresh";
-	
+
 	/** The percentage of matches required for a successful match */
 	public static final String RANSAC_PER_MATCHES_SUCCESS = "GeomScoreModifier.ransac_per_success_matches";
-	
+
 	/** The percentage of matches required for a successful match */
 	public static final String RANSAC_MAX_ITER = "GeomScoreModifier.ransac_max_iter";
 
 	/** The scoring scheme */
 	public static final String SCORING_SCHEME = "GeomScoreModifier.scoring";
-	
+
 	@Override
 	public boolean modifyScores(Index index, MatchingQueryTerms queryTerms, ResultSet resultSet) {
-		Lexicon<String> lexicon = index.getLexicon();
-		PositionInvertedIndex invertedIndex = (PositionInvertedIndex) index.getInvertedIndex();
-		PositionSpec spec = invertedIndex.getPositionSpec();
-		
-		double [] scores = resultSet.getScores();
-		QLFDocumentQuery<?> query = (QLFDocumentQuery<?>) queryTerms.getQuery();
-		QLFDocument<?> queryDoc = query.getDocument();
+		final Lexicon<String> lexicon = index.getLexicon();
+		final PositionInvertedIndex invertedIndex = (PositionInvertedIndex) index.getInvertedIndex();
+		final PositionSpec spec = invertedIndex.getPositionSpec();
 
-		int nd2r = ApplicationSetupUtils.getProperty(N_DOCS_TO_RERANK, resultSet.getResultSize());
-		final int nRerankDocs = (nd2r <= 0 ? resultSet.getResultSize() : (nd2r > resultSet.getResultSize() ? resultSet.getResultSize() : nd2r));
-		
+		final double[] scores = resultSet.getScores();
+		final QLFDocumentQuery<?> query = (QLFDocumentQuery<?>) queryTerms.getQuery();
+		final QLFDocument<?> queryDoc = query.getDocument();
+
+		final int nd2r = ApplicationSetupUtils.getProperty(N_DOCS_TO_RERANK, resultSet.getResultSize());
+		final int nRerankDocs = (nd2r <= 0 ? resultSet.getResultSize() : (nd2r > resultSet.getResultSize() ? resultSet
+				.getResultSize() : nd2r));
+
 		queryDoc.reset();
 
-		//record matches per doc:
-		TIntObjectHashMap<List<Pair<Point2d>>> allMatchingPoints = new TIntObjectHashMap<List<Pair<Point2d>>>();
+		// record matches per doc:
+		final TIntObjectHashMap<List<Pair<Point2d>>> allMatchingPoints = new TIntObjectHashMap<List<Pair<Point2d>>>();
 		String queryTerm;
 		while (!queryDoc.endOfDocument()) {
 			queryTerm = queryDoc.getNextTerm();
-			LexiconEntry le = lexicon.getLexiconEntry(queryTerm);
+			final LexiconEntry le = lexicon.getLexiconEntry(queryTerm);
 			if (le != null) {
-				int[] queryPos = spec.getPosition(queryDoc);
+				final int[] queryPos = spec.getPosition(queryDoc);
 
-				TIntObjectHashMap<int[][]> matchDocs = invertedIndex.getPositions((BitIndexPointer) le);
+				final TIntObjectHashMap<int[][]> matchDocs = invertedIndex.getPositions((BitIndexPointer) le);
 
-				for (int i=0; i<nRerankDocs; i++) {
-					int docid = resultSet.getDocids()[i];
-					int[][] matchingPoints = matchDocs.get(docid);
+				for (int i = 0; i < nRerankDocs; i++) {
+					final int docid = resultSet.getDocids()[i];
+					final int[][] matchingPoints = matchDocs.get(docid);
 
 					if (matchingPoints != null) {
 						List<Pair<Point2d>> ml = allMatchingPoints.get(docid);
 						if (ml == null)
 							allMatchingPoints.put(docid, ml = new ArrayList<Pair<Point2d>>(1));
-						
+
 						addMatches(queryPos, matchingPoints, ml);
 					}
 				}
 			}
 		}
-		
-		//now to do homography stuff
-		Model<Point2d, Point2d> hm = makeModel();
-		
-		int nIter = ApplicationSetupUtils.getProperty(RANSAC_MAX_ITER, 100);
-		double perItemsSuccess = ApplicationSetupUtils.getProperty(RANSAC_PER_MATCHES_SUCCESS, 0.5);
-		
-		ScoringScheme scoringScheme = ScoringScheme.valueOf(ApplicationSetup.getProperty(SCORING_SCHEME, ScoringScheme.NUM_MATCHES.name()));
-		
+
+		// now to do homography stuff
+		final EstimatableModel<Point2d, Point2d> hm = makeModel();
+
+		final int nIter = ApplicationSetupUtils.getProperty(RANSAC_MAX_ITER, 100);
+		final double perItemsSuccess = ApplicationSetupUtils.getProperty(RANSAC_PER_MATCHES_SUCCESS, 0.5);
+
+		final ScoringScheme scoringScheme = ScoringScheme.valueOf(ApplicationSetup.getProperty(SCORING_SCHEME,
+				ScoringScheme.NUM_MATCHES.name()));
+
 		RANSAC.StoppingCondition stoppingCondition = null;
-		
+
 		if (perItemsSuccess > 1) {
 			stoppingCondition = new RANSAC.NumberInliersStoppingCondition((int) perItemsSuccess);
 		} else if (perItemsSuccess > 0 && perItemsSuccess <= 1) {
@@ -179,17 +181,18 @@ public abstract class AbstractRANSACGeomModifier implements DocumentScoreModifie
 		} else {
 			stoppingCondition = new RANSAC.BestFitStoppingCondition();
 		}
-		
-		RANSAC<Point2d, Point2d> ransac = new RANSAC<Point2d, Point2d>(hm, nIter, stoppingCondition, false);
-		
-		for (int i=0; i<nRerankDocs; i++) {
-			int docid = resultSet.getDocids()[i];
-			List<Pair<Point2d>> data = allMatchingPoints.get(docid);
-			filter(data); 
-			
-			boolean didFit = ransac.fitData(data);
-			int nInliers = ransac.getInliers().size();
-			int nOutliers = ransac.getOutliers().size();
+
+		final RANSAC<Point2d, Point2d> ransac = new RANSAC<Point2d, Point2d>(hm, new TransformError2d(), getTolerance(),
+				nIter, stoppingCondition, false);
+
+		for (int i = 0; i < nRerankDocs; i++) {
+			final int docid = resultSet.getDocids()[i];
+			final List<Pair<Point2d>> data = allMatchingPoints.get(docid);
+			filter(data);
+
+			final boolean didFit = ransac.fitData(data);
+			final int nInliers = ransac.getInliers().size();
+			final int nOutliers = ransac.getOutliers().size();
 			scores[i] = scoringScheme.score(scores[i], didFit, nInliers, nOutliers);
 		}
 
@@ -198,43 +201,50 @@ public abstract class AbstractRANSACGeomModifier implements DocumentScoreModifie
 
 	/**
 	 * Make a new model instance.
+	 * 
 	 * @return the model
 	 */
-	public abstract Model<Point2d, Point2d> makeModel();
-	
+	public abstract EstimatableModel<Point2d, Point2d> makeModel();
+
 	protected void filter(List<Pair<Point2d>> in) {
-		float thresh = ApplicationSetupUtils.getProperty(FILTERING_THRESHOLD, 0.5f);
-		
-		if (thresh <= 0) return;
-		
-		//remove matches where there is a big inbalance 
-		TObjectIntHashMap<Point2d> forwardMatches = new TObjectIntHashMap<Point2d>();
-		TObjectIntHashMap<Point2d> reverseMatches = new TObjectIntHashMap<Point2d>();
-		
-		for (Pair<Point2d> m : in) {
+		final float thresh = ApplicationSetupUtils.getProperty(FILTERING_THRESHOLD, 0.5f);
+
+		if (thresh <= 0)
+			return;
+
+		// remove matches where there is a big inbalance
+		final TObjectIntHashMap<Point2d> forwardMatches = new TObjectIntHashMap<Point2d>();
+		final TObjectIntHashMap<Point2d> reverseMatches = new TObjectIntHashMap<Point2d>();
+
+		for (final Pair<Point2d> m : in) {
 			forwardMatches.adjustOrPutValue(m.firstObject(), 1, 1);
 			reverseMatches.adjustOrPutValue(m.secondObject(), 1, 1);
 		}
-		
-		List<Pair<Point2d>> remove = new ArrayList<Pair<Point2d>>();
-		for (Pair<Point2d> m : in) {
-			float score = (float)Math.min(forwardMatches.get(m.firstObject()), reverseMatches.get(m.secondObject())) / (float)Math.max(forwardMatches.get(m.firstObject()), reverseMatches.get(m.secondObject()));
-			
-			if (score < thresh) remove.add(m);
+
+		final List<Pair<Point2d>> remove = new ArrayList<Pair<Point2d>>();
+		for (final Pair<Point2d> m : in) {
+			final float score = (float) Math.min(forwardMatches.get(m.firstObject()),
+					reverseMatches.get(m.secondObject()))
+					/ (float) Math.max(forwardMatches.get(m.firstObject()), reverseMatches.get(m.secondObject()));
+
+			if (score < thresh)
+				remove.add(m);
 		}
-		
+
 		in.removeAll(remove);
 	}
-	
+
 	@Override
 	public abstract AbstractRANSACGeomModifier clone();
-	
-	protected void addMatches(int [] qp, int [][] tps, List<Pair<Point2d>> matches) {
-		Point2d qpt = new Point2dImpl(qp[0], qp[1]);
-		
-		for (int [] tp : tps) {
-			Point2d tpt = new Point2dImpl(tp[0], tp[1]);
+
+	protected void addMatches(int[] qp, int[][] tps, List<Pair<Point2d>> matches) {
+		final Point2d qpt = new Point2dImpl(qp[0], qp[1]);
+
+		for (final int[] tp : tps) {
+			final Point2d tpt = new Point2dImpl(tp[0], tp[1]);
 			matches.add(new Pair<Point2d>(qpt, tpt));
 		}
 	}
+
+	protected abstract double getTolerance();
 }
