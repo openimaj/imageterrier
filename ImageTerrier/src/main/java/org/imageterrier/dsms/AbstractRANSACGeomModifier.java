@@ -41,7 +41,7 @@ import org.imageterrier.querying.parser.QLFDocumentQuery;
 import org.imageterrier.structures.PositionInvertedIndex;
 import org.openimaj.math.geometry.point.Point2d;
 import org.openimaj.math.geometry.point.Point2dImpl;
-import org.openimaj.math.geometry.transforms.error.TransformError2d;
+import org.openimaj.math.geometry.transforms.residuals.AlgebraicResidual2d;
 import org.openimaj.math.model.EstimatableModel;
 import org.openimaj.math.model.fit.RANSAC;
 import org.openimaj.util.pair.Pair;
@@ -182,7 +182,9 @@ public abstract class AbstractRANSACGeomModifier implements DocumentScoreModifie
 			stoppingCondition = new RANSAC.BestFitStoppingCondition();
 		}
 
-		final RANSAC<Point2d, Point2d> ransac = new RANSAC<Point2d, Point2d>(hm, new TransformError2d(), getTolerance(),
+		@SuppressWarnings({ "rawtypes", "unchecked" })
+		final RANSAC<Point2d, Point2d, ?> ransac = new RANSAC<Point2d, Point2d, EstimatableModel<Point2d, Point2d>>(hm,
+				new AlgebraicResidual2d(), getTolerance(),
 				nIter, stoppingCondition, false);
 
 		for (int i = 0; i < nRerankDocs; i++) {

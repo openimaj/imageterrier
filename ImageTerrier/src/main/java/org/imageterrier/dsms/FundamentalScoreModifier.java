@@ -64,7 +64,7 @@ public class FundamentalScoreModifier extends AbstractRANSACGeomModifier impleme
 
 	@Override
 	public EstimatableModel<Point2d, Point2d> makeModel() {
-		return new FundamentalModel(new FundamentalModel.SampsonGeometricErrorCondition(getTolerance()));
+		return new FundamentalModel();
 	}
 
 	@Override
