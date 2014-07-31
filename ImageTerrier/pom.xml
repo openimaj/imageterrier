@@ -10,7 +10,7 @@
 	<groupId>org.imageterrier</groupId>
 	<artifactId>ImageTerrier</artifactId>
 	<packaging>jar</packaging>
-	<version>3.5-SNAPSHOT</version>
+	<version>3.6-SNAPSHOT</version>
 	<name>ImageTerrier</name>
 	<url>http://www.imageterrier.org/ImageTerrier</url>
 	<inceptionYear>2011</inceptionYear>
@@ -87,7 +87,7 @@
 		<dependency>
 			<groupId>org.terrier</groupId>
 			<artifactId>Terrier</artifactId>
-			<version>3.5.0</version>
+			<version>3.5.0-CDH4.7.0</version>
 			<scope>compile</scope>
 		</dependency>
 		<dependency>

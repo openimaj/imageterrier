@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>org.imageterrier</groupId>
 	<artifactId>ImageClusterTool</artifactId>
-	<version>3.5-SNAPSHOT</version>
+	<version>3.6-SNAPSHOT</version>
 	<name>ImageClusterTool</name>
 	<url>http://www.imageterrier.org/ImageClusterTool</url>
 	<inceptionYear>2011</inceptionYear>
@@ -79,7 +79,7 @@
 		<dependency>
 			<groupId>org.imageterrier</groupId>
 			<artifactId>ImageTerrierTools</artifactId>
-			<version>3.5-SNAPSHOT</version>
+			<version>3.6-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.openimaj.tools</groupId>
