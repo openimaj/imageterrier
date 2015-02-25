@@ -1,6 +1,6 @@
-org.imageterrier.basictools
-org.imageterrier.features
-org.imageterrier
-org.imageterrier.index.merge
-org.imageterrier.toolopts
-org.imageterrier.tools.multi
+org.imageterrier.hadoop.fs
+org.imageterrier.hadoop.mapreduce
+org.imageterrier.indexers.hadoop
+org.terrier.indexing
+org.terrier.structures.indexing
+org.terrier.structures.indexing.singlepass.hadoop
