@@ -3,7 +3,7 @@
     xsi:schemaLocation="http://maven.apache.org/DECORATION/1.0.0 http://maven.apache.org/xsd/decoration-1.0.0.xsd">
   <bannerLeft>
     <name>ImageTerrier</name>
-    <src>http://imageterrier.sf.net/images/imageterrier.png</src>
+    <src>http://www.imageterrier.org/images/imageterrier.png</src>
     <alt>ImageTerrier Logo</alt>
     <href>http://www.imageterrier.org</href>
   </bannerLeft>
@@ -15,8 +15,8 @@
     <menu name="Overview" inherit="top">
       <item name="Introduction" href="http://www.imageterrier.org"/>
 			<item name="Sponsors" href="http://www.imageterrier.org/sponsors.html"/>
-      <item name="Development Site" href="http://www.sf.net/p/imageterrier/home"/>
-      <item name="ImageTerrier Wiki" href="http://www.sf.net/p/imageterrier/wiki/"/>
+      <item name="Development Site" href="http://www.github.com/openimaj/imageterrier"/>
+      <item name="ImageTerrier Wiki" href="http://www.github.com/openimaj/imageterrier/wiki/"/>
       <item name="Javadoc" href="http://www.imageterrier.org/apidocs/index.html"/>
     </menu>
 		<menu ref="parent" inherit="top"/>
