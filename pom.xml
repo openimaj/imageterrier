@@ -78,6 +78,7 @@
 		</issueManagement>
 		<properties>
 			<openimaj.version>1.3-SNAPSHOT</openimaj.version>
+			<github.global.server>github</github.global.server>
 		</properties>
 	<modules>
 		<module>ImageTerrier</module>
@@ -103,7 +104,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-site-plugin</artifactId>
-				<version>3.0-beta-3</version>
+				<version>3.4</version>
 				<configuration>
 					<siteDirectory>${basedir}/site/src/site</siteDirectory>
 					<reportPlugins>
@@ -163,6 +164,13 @@
 						</goals>
 					</execution>
 				</executions>
+				<dependencies>
+				<dependency>
+					<groupId>net.trajano.wagon</groupId>
+					<artifactId>wagon-git</artifactId>
+					<version>2.0.0</version>
+				</dependency>
+			</dependencies>
 			</plugin>
 		</plugins>
 	</build>
@@ -190,13 +198,17 @@
 		  <url>http://maven.ecs.soton.ac.uk/content/repositories/imageterrier-snapshots/</url>
 		</snapshotRepository>
 		<site>
-			<id>imageterrier.sf.net</id>
-			<url>scp://shell.sourceforge.net/home/project-web/imageterrier/htdocs/</url>
+			<!-- <id>imageterrier.sf.net</id>
+			<url>scp://shell.sourceforge.net/home/project-web/imageterrier/htdocs/</url> -->
+			<id>github</id>
+        	<name>ImageTerrier GitHub Pages</name>
+        	<!-- <url>github:http://openimaj.github.io/imageterrier/</url> -->
+        	<url>git:ssh://git@github.com/openimaj/imageterrier.git?gh-pages#</url>
 		</site>
 	</distributionManagement>
 	<scm>
 		<connection>scm:git:https://github.com/openimaj/imageterrier.git</connection>
-		<developerConnection>git@github.com:openimaj/imageterrier.git</developerConnection>
+		<developerConnection>scm:git:git@github.com:openimaj/imageterrier.git</developerConnection>
 		<url>https://github.com/openimaj/imageterrier/</url>
 	</scm>
 </project>
