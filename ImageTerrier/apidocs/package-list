@@ -1,0 +1,15 @@
+org.imageterrier.basictools
+org.imageterrier.dsms
+org.imageterrier.indexing
+org.imageterrier.locfile
+org.imageterrier.models
+org.imageterrier.querying.parser
+org.imageterrier.structures
+org.imageterrier.structures.indexing
+org.imageterrier.termpayload
+org.terrier.indexing
+org.terrier.structures
+org.terrier.structures.indexing
+org.terrier.structures.indexing.singlepass
+org.terrier.structures.postings
+org.terrier.utility
