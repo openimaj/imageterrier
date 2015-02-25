@@ -13,13 +13,3 @@ org.terrier.structures.indexing
 org.terrier.structures.postings
 org.terrier.structures
 org.terrier.utility
-org.imageterrier.features
-org.imageterrier
-org.imageterrier.index.merge
-org.imageterrier.toolopts
-org.imageterrier.tools.multi
-org.imageterrier.hadoop.fs
-org.imageterrier.hadoop.mapreduce
-org.imageterrier.indexers.hadoop
-org.terrier.structures.indexing.singlepass.hadoop
-org.imageterrier.tools
